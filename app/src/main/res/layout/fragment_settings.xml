@@ -484,7 +484,8 @@
                         android:layout_weight="1"
                         android:text="Сохранить"
                         android:layout_marginEnd="4dp"
-                        android:backgroundTint="@color/primary"
+                        android:elevation="6dp"
+                        android:background="@drawable/button_ripple"
                         android:textColor="@android:color/white" />
 
                     <Button
@@ -494,7 +495,8 @@
                         android:layout_weight="1"
                         android:text="Считать"
                         android:layout_marginStart="4dp"
-                        android:backgroundTint="@color/primary"
+                        android:elevation="6dp"
+                        android:background="@drawable/button_ripple"
                         android:textColor="@android:color/white" />
 
                 </LinearLayout>
@@ -505,7 +507,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Сбросить настройки"
-                    android:backgroundTint="@color/primary"
+                    android:elevation="6dp"
+                    android:background="@drawable/button_ripple"
                     android:textColor="@android:color/white" />
 
             </LinearLayout>

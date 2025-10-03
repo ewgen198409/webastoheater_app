@@ -4,8 +4,11 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+
 import androidx.core.content.ContextCompat
+import com.webasto.heater.R
 import com.webasto.heater.databinding.FragmentControlBinding
+
 
 class ControlFragment : BaseHeaterFragment() {
 
@@ -63,10 +66,14 @@ class ControlFragment : BaseHeaterFragment() {
         activity?.runOnUiThread {
             if (isHeaterOn) {
                 binding.burnButton.text = "Выключить нагрев"
-                binding.burnButton.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark))
+                // Для включения нагрева (зелёный)
+                binding.burnButton.backgroundTintList =
+                    ContextCompat.getColorStateList(requireContext(), R.color.red)
             } else {
                 binding.burnButton.text = "Включить нагрев"
-                binding.burnButton.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.holo_green_dark))
+                // Для выключения нагрева (красный)
+                binding.burnButton.backgroundTintList =
+                    ContextCompat.getColorStateList(requireContext(), R.color.green)
             }
         }
     }
@@ -117,35 +124,33 @@ class ControlFragment : BaseHeaterFragment() {
 
     private fun updateGlowPlugWithColor(textView: android.widget.TextView, value: Any?) {
         val title = textView.tag?.toString() ?: ""
-
-        // Парсим значение glow_left (Gl:\s*(\S+))
-        val (displayStatus, isActive) = when (value) {
+    
+        val displayStatus = when (value) {
             is String -> {
                 when {
-                    value >= "1" -> Pair("Активна", true)
-                    value == "0" -> Pair("Неактивна", false)
+                    value >= "1" -> "Активна"
+                    value == "0" -> "Неактивна"
                     value.toIntOrNull() != null -> {
                         val numValue = value.toInt()
-                        Pair(if (numValue != 0) "Активна" else "Неактивна", numValue != 0)
+                        if (numValue != 0) "Активна" else "Неактивна"
                     }
-                    value.equals("true", true) -> Pair("Активна", true)
-                    value.equals("false", true) -> Pair("Неактивна", false)
-                    value.isNotEmpty() && value != "unavailable" -> Pair("Активна ($value)", true)
-                    else -> Pair("Неактивна", false)
+                    value.equals("true", true) -> "Активна"
+                    value.equals("false", true) -> "Неактивна"
+                    value.isNotEmpty() && value != "unavailable" -> "Активна ($value)"
+                    else -> "Неактивна"
                 }
             }
             is Number -> {
                 val numValue = value.toInt()
-                Pair(if (numValue != 0) "Активна" else "Неактивна", numValue != 0)
+                if (numValue != 0) "Активна" else "Неактивна"
             }
             is Boolean -> {
-                Pair(if (value) "Активна" else "Неактивна", value)
+                if (value) "Активна" else "Неактивна"
             }
-            else -> Pair("Неактивна", false)
+            else -> "Неактивна"
         }
-
+    
         textView.text = "$title$displayStatus"
-        // Белый цвет для свечи накаливания
         textView.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
     }
 
