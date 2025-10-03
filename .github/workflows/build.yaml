@@ -26,9 +26,17 @@ jobs:
       - name: Build release APK
         run: ./gradlew assembleRelease
 
-      - name: Upload APK to GitHub Release
+      - name: Create Tag
+        run: |
+          TAG_NAME="v1.0.0-$(date +%Y%m%d-%H%M%S)"
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+              
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: app/build/outputs/apk/release/WebastoHeater-*.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ env.TAG_NAME }}
+          overwrite_files: true
+          token: ${{ secrets.GITHUB_TOKEN }}
