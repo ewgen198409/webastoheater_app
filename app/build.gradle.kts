@@ -12,24 +12,30 @@ android {
         minSdk = 21
         targetSdk = 33
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0"         // Версия приложения
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    signingConfigs {
-        create("release") {
-            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
+signingConfigs {
+    create("release") {
+        storeFile = file("$rootDir/app/keystore/debug.keystore")
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
     }
+}
 
     buildTypes {
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
+            applicationVariants.all {
+                outputs.all {
+                    val apkName = "WebastoHeater-${versionName}.apk"
+                    (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName = apkName
+                }
+            }
         }
     }
 
