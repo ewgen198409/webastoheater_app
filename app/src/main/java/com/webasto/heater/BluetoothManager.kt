@@ -36,7 +36,12 @@ class BluetoothManager(private val context: Context) {
     @SuppressLint("MissingPermission")
     fun initialize(): Boolean {
         val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? android.bluetooth.BluetoothManager
-        bluetoothAdapter = bluetoothManager?.adapter ?: BluetoothAdapter.getDefaultAdapter()
+        bluetoothAdapter = bluetoothManager?.adapter
+        if (bluetoothAdapter == null) {
+            // Fallback для старых устройств
+            @Suppress("DEPRECATION")
+            bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+        }
         return bluetoothAdapter != null
     }
 
