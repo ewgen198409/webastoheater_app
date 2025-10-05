@@ -1,4 +1,4 @@
-# Webasto Heater - Android приложение для управления нагревателем сухой фен "Webasto". Для проекта ESP8266_webasto.
+# Webasto Heater - Android приложение для управления нагревателем сухой фен "Webasto".
 
 <div align="center">
 
