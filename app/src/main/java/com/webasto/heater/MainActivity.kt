@@ -27,6 +27,7 @@ import com.webasto.heater.databinding.ActivityMainBinding
 import com.google.android.material.tabs.TabLayoutMediator
 import org.json.JSONObject
 import android.widget.Button
+import android.widget.TextView
 
 class MainActivity : AppCompatActivity(), BluetoothDataListener {
 
@@ -65,6 +66,10 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        
+        // Получаем версию приложения и устанавливаем в TextView
+        val versionName = packageManager.getPackageInfo(packageName, 0).versionName
+        findViewById<TextView>(R.id.app_version).text = "v$versionName"
 
         Log.d("MainActivity", "Activity created - isChangingConfigurations: $isChangingConfigurations")
 
@@ -162,17 +167,23 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             Toast.makeText(this, "Нет сопряженных устройств", Toast.LENGTH_SHORT).show()
             return
         }
-
-        val deviceNames = pairedDevices.map { it.name ?: "Unknown Device" }.toTypedArray()
-
-        AlertDialog.Builder(this)
-            .setTitle("Выберите Bluetooth устройство")
-            .setItems(deviceNames) { _, which ->
-                val selectedDevice = pairedDevices.elementAt(which)
-                connectToBluetoothDevice(selectedDevice)
-            }
-            .setNegativeButton("Отмена", null)
-            .show()
+    
+        // Проверка разрешения BLUETOOTH_CONNECT
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
+            val deviceNames = pairedDevices.map { it.name ?: "Unknown Device" }.toTypedArray()
+        
+            AlertDialog.Builder(this)
+                .setTitle("Выберите Bluetooth устройство")
+                .setItems(deviceNames) { _, which ->
+                    val selectedDevice = pairedDevices.elementAt(which)
+                    connectToBluetoothDevice(selectedDevice)
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+        } else {
+            Toast.makeText(this, "Нет разрешения на доступ к Bluetooth-устройствам", Toast.LENGTH_LONG).show()
+            // Можно запросить разрешение или просто уведомить пользователя
+        }
     }
 
     private fun connectToBluetoothDevice(device: BluetoothDevice) {

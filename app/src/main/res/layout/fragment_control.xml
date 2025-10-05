@@ -32,7 +32,7 @@
                     android:layout_height="24dp"
                     android:src="@drawable/ic_info"
                     android:layout_marginEnd="12dp"
-                    android:tint="@android:color/white" />
+                    app:tint="@android:color/white" />
 
                 <TextView
                     android:id="@+id/status_text"
@@ -83,7 +83,7 @@
                         android:layout_height="24dp"
                         android:src="@drawable/thermometer"
                         android:layout_marginEnd="12dp"
-                        android:tint="?android:attr/textColorPrimary" />
+                        app:tint="?android:attr/textColorPrimary" />
 
                     <TextView
                         android:id="@+id/exhaust_temp"
@@ -107,7 +107,7 @@
                         android:layout_height="24dp"
                         android:src="@drawable/fan"
                         android:layout_marginEnd="12dp"
-                        android:tint="?android:attr/textColorPrimary" />
+                        app:tint="?android:attr/textColorPrimary" />
 
                     <TextView
                         android:id="@+id/fan_speed"
@@ -131,7 +131,7 @@
                         android:layout_height="24dp"
                         android:src="@drawable/gas"
                         android:layout_marginEnd="12dp"
-                        android:tint="?android:attr/textColorPrimary" />
+                        app:tint="?android:attr/textColorPrimary" />
 
                     <TextView
                         android:id="@+id/fuel_rate"
@@ -155,7 +155,7 @@
                         android:layout_height="24dp"
                         android:src="@drawable/candle"
                         android:layout_marginEnd="12dp"
-                        android:tint="?android:attr/textColorPrimary" />
+                        app:tint="?android:attr/textColorPrimary" />
 
                     <TextView
                         android:id="@+id/glow_plug"
