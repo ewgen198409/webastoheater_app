@@ -5,14 +5,14 @@ plugins {
 
 android {
     namespace = "com.webasto.heater"
-    compileSdk = 33
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.webasto.heater"
         minSdk = 21
-        targetSdk = 33
+        targetSdk = 34
         versionCode = 1
-        versionName = "1.0"         // Версия приложения
+        versionName = "1.1.0"         // Версия приложения
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -56,7 +56,7 @@ signingConfigs {
 dependencies {
     implementation("androidx.core:core-ktx:1.9.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("com.google.android.material:material:1.9.0")
+    implementation("com.google.android.material:material:1.10.0")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.cardview:cardview:1.0.0")

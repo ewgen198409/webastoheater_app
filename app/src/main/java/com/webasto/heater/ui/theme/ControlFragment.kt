@@ -35,7 +35,7 @@ class ControlFragment : BaseHeaterFragment() {
         binding.fanSpeed.tag = "Скорость вентилятора: "
         binding.fuelRate.tag = "Частота насоса: "
         binding.statusText.tag = "Состояние: "
-        binding.cycleTime.tag = "Cycle Time: "
+        binding.cycleTime.tag = "Время цикла: "
         binding.ignitFail.tag = "Попытка запуска: "
         binding.currentStateText.tag = "Текущий режим: "
         binding.webastoFail.tag = "Ошибки Webasto: "
@@ -66,14 +66,12 @@ class ControlFragment : BaseHeaterFragment() {
         activity?.runOnUiThread {
             if (isHeaterOn) {
                 binding.burnButton.text = "Выключить нагрев"
-                // Для включения нагрева (зелёный)
-                binding.burnButton.backgroundTintList =
-                    ContextCompat.getColorStateList(requireContext(), R.color.red)
+                // Применяем 3D-стиль для включенного состояния
+                binding.burnButton.setBackgroundResource(R.drawable.button_3d_effect_off)
             } else {
                 binding.burnButton.text = "Включить нагрев"
-                // Для выключения нагрева (красный)
-                binding.burnButton.backgroundTintList =
-                    ContextCompat.getColorStateList(requireContext(), R.color.green)
+                // Применяем 3D-стиль для выключенного состояния
+                binding.burnButton.setBackgroundResource(R.drawable.button_3d_effect_on)
             }
         }
     }
@@ -87,7 +85,7 @@ class ControlFragment : BaseHeaterFragment() {
             updateTextViewWithTitle(binding.statusText, data["message"], "")
 
             // Cycle time и попытка запуска (ignit_fail)
-            updateTextViewWithTitle(binding.cycleTime, data["cycle_time"], "сек")
+            updateTextViewWithTitle(binding.cycleTime, data["cycle_time"], "")
             updateTextViewWithTitle(binding.ignitFail, data["ignit_fail"], "")
 
             // Текущий режим (FULL, MID, LOW)
@@ -124,7 +122,7 @@ class ControlFragment : BaseHeaterFragment() {
 
     private fun updateGlowPlugWithColor(textView: android.widget.TextView, value: Any?) {
         val title = textView.tag?.toString() ?: ""
-    
+
         val displayStatus = when (value) {
             is String -> {
                 when {
@@ -149,7 +147,7 @@ class ControlFragment : BaseHeaterFragment() {
             }
             else -> "Неактивна"
         }
-    
+
         textView.text = "$title$displayStatus"
         textView.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
     }

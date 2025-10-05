@@ -26,6 +26,7 @@ import androidx.preference.PreferenceManager
 import com.webasto.heater.databinding.ActivityMainBinding
 import com.google.android.material.tabs.TabLayoutMediator
 import org.json.JSONObject
+import android.widget.Button
 
 class MainActivity : AppCompatActivity(), BluetoothDataListener {
 
@@ -96,12 +97,16 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
     }
 
     private fun initializeUI() {
-        // Убираем выбор типа подключения, оставляем только Bluetooth
-        binding.connectionTypeGroup.visibility = View.GONE
-        binding.hostInput.visibility = View.GONE
-
+        updateConnectionStatus("Отключено")
         binding.connectButton.setOnClickListener {
-            connectViaBluetooth()
+            if (bluetoothManager.isConnected()) {
+                bluetoothManager.disconnect()
+                updateConnectionStatus("Отключено")
+                updateConnectButton(false)
+                binding.connectionStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
+            } else {
+                connectViaBluetooth()
+            }
         }
     }
 
@@ -250,14 +255,16 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
                 val deviceInfo = " (${bluetoothManager.getConnectedDeviceName()})"
                 binding.connectionStatus.text = "Подключено Bluetooth$deviceInfo"
                 binding.connectionStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_dark))
-
             } else {
                 binding.connectionStatus.text = "Отключено"
                 binding.connectionStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
             }
             binding.connectButton.isEnabled = true
+            updateConnectButton(connected)
         }
     }
+
+
 
     override fun onError(error: String) {
         runOnUiThread {
@@ -316,8 +323,8 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             "fuel_need" to Regex("""FN:\s*(\S+)"""),
             "glow_left" to Regex("""Gl:\s*(\S+)"""),
             "cycle_time" to Regex("""CyTim:\s*(\S+)"""),
-            "message" to Regex("""I:\s*([^,]+)"""),
-            "final_fuel" to Regex("""FinalFuel:\s*(\S+)"""),
+            "message" to Regex("""I:\s*(\S+)"""),
+            "final_fuel" to Regex("""FinalFuel:\s*(\S+\s+\S+)"""),
             "burn" to Regex("""Burn:\s*(\S+)""")
         )
 
@@ -325,12 +332,40 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
 
         patterns.forEach { (key, pattern) ->
             pattern.find(message)?.groups?.get(1)?.value?.let { value ->
-                currentData[key] = value
-                Log.d("BluetoothDebug", "Serial data: $key = $value")
+                if (key == "cycle_time") {
+                    // Преобразуем секунды в минуты и добавляем в скобках
+                    val seconds = value.toFloatOrNull()
+                    if (seconds != null) {
+                        val minutes = seconds / 60f
+                        val formatted = String.format("%s (%.0f мин)", value, minutes)
+                        currentData[key] = formatted
+                        Log.d("BluetoothDebug", "Serial data: $key = $formatted")
+                    } else {
+                        currentData[key] = value
+                        Log.d("BluetoothDebug", "Serial data: $key = $value")
+                    }
+                } else {
+                    currentData[key] = value
+                    Log.d("BluetoothDebug", "Serial data: $key = $value")
+                }
                 dataFound = true
             }
         }
 
+        // Дополнительный парсинг для сообщений без префикса I:
+        if (!currentData.containsKey("message") && message.contains("|")) {
+            val messageParts = message.split("|")
+            if (messageParts.isNotEmpty()) {
+                val cleanMessage = messageParts[0].trim()
+                if (cleanMessage.isNotEmpty()) {
+                    currentData["message"] = cleanMessage
+                    Log.d("BluetoothDebug", "Message without prefix: $cleanMessage")
+                    dataFound = true
+                }
+            }
+        }
+        
+        
         // Обработка состояния (St:) как в webasto.py
         if (message.contains("St:")) {
             try {
@@ -357,6 +392,18 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
                 viewPagerAdapter.updateAllFragments(currentData.toMap())
             }
         }
+    }
+
+    private fun updateConnectButton(isConnected: Boolean) {
+        val button = findViewById<Button>(R.id.connect_button)
+        if (isConnected) {
+            button.text = "Отключить Bluetooth"
+            button.setBackgroundResource(R.drawable.button_3d_effect_on)
+
+        } else {
+            button.text = "Подключить Bluetooth"
+            button.setBackgroundResource(R.drawable.button_3d_effect_off)
+          }
     }
 
     private fun parseSettings(data: String) {

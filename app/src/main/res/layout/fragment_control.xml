@@ -23,8 +23,16 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_info"
+                    android:layout_marginEnd="12dp"
+                    android:tint="@android:color/white" />
 
                 <TextView
                     android:id="@+id/status_text"
@@ -56,76 +64,204 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Показатели"
+                    android:text="Мониторинг"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="?android:attr/textColorPrimary"
                     android:layout_marginBottom="8dp" />
 
-                <TextView
-                    android:id="@+id/exhaust_temp"
+                <!-- Температура выхлопа -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:padding="8dp"
-                    android:text="Температура выхлопа: unavailable °C"
-                    android:textColor="?android:attr/textColorPrimary" />
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/fan_speed"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/thermometer"
+                        android:layout_marginEnd="12dp"
+                        android:tint="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/exhaust_temp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Температура выхлопа: unavailable °C"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                </LinearLayout>
+
+                <!-- Скорость вентилятора -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:padding="8dp"
-                    android:text="Скорость вентилятора: unavailable %"
-                    android:textColor="?android:attr/textColorPrimary" />
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/fuel_rate"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/fan"
+                        android:layout_marginEnd="12dp"
+                        android:tint="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/fan_speed"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Скорость вентилятора: unavailable %"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                </LinearLayout>
+
+                <!-- Частота насоса -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:padding="8dp"
-                    android:text="Частота насоса: unavailable Гц"
-                    android:textColor="?android:attr/textColorPrimary" />
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/glow_plug"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/gas"
+                        android:layout_marginEnd="12dp"
+                        android:tint="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/fuel_rate"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Частота насоса: unavailable Гц"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                </LinearLayout>
+
+                <!-- Свеча накаливания -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:padding="8dp"
-                    android:text="Свеча накаливания: Неактивна"
-                    android:textColor="?android:attr/textColorPrimary" />
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/cycle_time"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/candle"
+                        android:layout_marginEnd="12dp"
+                        android:tint="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/glow_plug"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Свеча накаливания: Неактивна"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                </LinearLayout>
+
+                <!-- Время цикла -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:padding="8dp"
-                    android:text="Cycle Time: unavailable сек"
-                    android:textColor="?android:attr/textColorPrimary" />
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/ignit_fail"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/clock"
+                        android:layout_marginEnd="12dp"
+                        app:tint="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/cycle_time"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Время цикла: unavailable"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                </LinearLayout>
+
+                <!-- Попытка запуска -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:padding="8dp"
-                    android:text="Попытка запуска: unavailable"
-                    android:textColor="?android:attr/textColorPrimary" />
+                    android:layout_marginStart="0dp"
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/webasto_fail"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/refresh"
+                        android:layout_marginEnd="12dp"
+                        app:tint="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/ignit_fail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Попытка запуска: unavailable"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                </LinearLayout>
+
+                <!-- Ошибки Webasto -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:padding="8dp"
-                    android:text="Ошибки Webasto: Нет"
-                    android:textColor="?android:attr/textColorPrimary" />
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/current_state_text"
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/alert"
+                        android:layout_marginEnd="12dp"
+                        app:tint="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/webasto_fail"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Ошибки Webasto: Нет"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                </LinearLayout>
+
+                <!-- Текущий режим -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:orientation="horizontal"
                     android:padding="8dp"
-                    android:text="Текущий режим: unavailable"
-                    android:textColor="?android:attr/textColorPrimary" />
+                    android:gravity="center_vertical">
 
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/recycle"
+                        android:layout_marginEnd="12dp"
+                        app:tint="?android:attr/textColorPrimary" />
+
+                    <TextView
+                        android:id="@+id/current_state_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Текущий режим: unavailable"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                </LinearLayout>
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -151,9 +287,10 @@
                     android:layout_height="wrap_content"
                     android:text="Включить нагрев"
                     android:textSize="16sp"
-                    app:cornerRadius="12dp"
                     android:layout_marginBottom="10dp"
                     android:elevation="6dp"
+                    android:background="@drawable/button_3d_effect_on"
+                    app:backgroundTint="@null"
                     android:textColor="@android:color/white" />
 
                 <!-- Кнопки управления в сетке -->
@@ -171,7 +308,8 @@
                         android:text="Up"
                         android:layout_marginEnd="4dp"
                         android:elevation="6dp"
-                        android:background="@drawable/button_ripple"
+                        android:background="@drawable/button_3d_effect"
+                        app:backgroundTint="@null"
                         android:textColor="@android:color/white" />
 
                     <Button
@@ -182,7 +320,8 @@
                         android:text="Down"
                         android:layout_marginStart="4dp"
                         android:elevation="6dp"
-                        android:background="@drawable/button_ripple"
+                        android:background="@drawable/button_3d_effect"
+                        app:backgroundTint="@null"
                         android:textColor="@android:color/white" />
 
                 </LinearLayout>
@@ -200,7 +339,8 @@
                         android:text="Прокачка"
                         android:layout_marginEnd="4dp"
                         android:elevation="6dp"
-                        android:background="@drawable/button_ripple"
+                        android:background="@drawable/button_3d_effect"
+                        app:backgroundTint="@null"
                         android:textColor="@android:color/white" />
 
                     <Button
@@ -211,7 +351,8 @@
                         android:text="Сброс ошибки"
                         android:layout_marginStart="4dp"
                         android:elevation="6dp"
-                        android:background="@drawable/button_ripple"
+                        android:background="@drawable/button_3d_effect"
+                        app:backgroundTint="@null"
                         android:textColor="@android:color/white" />
 
                 </LinearLayout>

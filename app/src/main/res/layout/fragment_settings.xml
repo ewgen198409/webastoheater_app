@@ -485,7 +485,8 @@
                         android:text="Сохранить"
                         android:layout_marginEnd="4dp"
                         android:elevation="6dp"
-                        android:background="@drawable/button_ripple"
+                        android:background="@drawable/button_3d_effect"
+                        app:backgroundTint="@null"
                         android:textColor="@android:color/white" />
 
                     <Button
@@ -496,7 +497,8 @@
                         android:text="Считать"
                         android:layout_marginStart="4dp"
                         android:elevation="6dp"
-                        android:background="@drawable/button_ripple"
+                        android:background="@drawable/button_3d_effect"
+                        app:backgroundTint="@null"
                         android:textColor="@android:color/white" />
 
                 </LinearLayout>
@@ -508,7 +510,8 @@
                     android:layout_height="wrap_content"
                     android:text="Сбросить настройки"
                     android:elevation="6dp"
-                    android:background="@drawable/button_ripple"
+                    android:background="@drawable/button_3d_effect"
+                    app:backgroundTint="@null"
                     android:textColor="@android:color/white" />
 
             </LinearLayout>

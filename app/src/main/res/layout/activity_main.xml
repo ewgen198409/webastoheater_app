@@ -33,38 +33,6 @@
             android:adjustViewBounds="true" />
 
     </LinearLayout>
-    <!-- Убираем выбор типа подключения -->
-    <RadioGroup
-        android:id="@+id/connection_type_group"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:visibility="gone">
-
-        <RadioButton
-            android:id="@+id/wifi_radio"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Wi-Fi"
-            android:checked="true" />
-
-        <RadioButton
-            android:id="@+id/bluetooth_radio"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Bluetooth" />
-    </RadioGroup>
-
-    <!-- Убираем поле для ввода IP -->
-    <EditText
-        android:id="@+id/host_input"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="IP адрес Webasto (например: 192.168.1.100)"
-        android:text="192.168.1.100"
-        android:visibility="gone" />
 
     <Button
         android:id="@+id/connect_button"
@@ -72,16 +40,8 @@
         android:layout_height="wrap_content"
         android:text="Подключить Bluetooth"
         android:elevation="6dp"
-        android:background="@drawable/button_ripple"
-        android:textColor="@android:color/white" />
-
-    <Button
-        android:id="@+id/debug_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Отправить GET_SETTINGS"
-        android:visibility="gone"
-        android:backgroundTint="@color/primary"
+        android:background="@drawable/button_3d_effect_off"
+        app:backgroundTint="@null"
         android:textColor="@android:color/white" />
 
     <TextView
