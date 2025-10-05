@@ -79,3 +79,13 @@ Webasto Heater - это современное Android приложение, р�
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+```
+
+## 📄 Лицензия
+- Этот проект распространяется под лицензией MIT. Подробнее см. в файле LICENSE.
+
+## 👥 Авторы
+- ewgeniy1984 vs GithubCopilot
+
+## ⭐ Поддержка
+- Если вам понравился проект, поставьте звезду ⭐ на GitHub!
