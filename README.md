@@ -6,8 +6,6 @@
   [![Android](https://img.shields.io/badge/Android-5.0%2B-brightgreen.svg)](https://android.com)
   [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-  Android приложение для управления проектом "ESP8266_webasto"
-
 </div>
 
 ## 📖 О проекте
