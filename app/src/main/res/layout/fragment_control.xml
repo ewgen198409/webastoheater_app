@@ -89,7 +89,7 @@
                         android:id="@+id/exhaust_temp"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Температура выхлопа: unavailable °C"
+                        android:text="Температура выхлопа: unavailable"
                         android:textColor="?android:attr/textColorPrimary" />
 
                 </LinearLayout>
@@ -113,7 +113,7 @@
                         android:id="@+id/fan_speed"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Скорость вентилятора: unavailable %"
+                        android:text="Скорость вентилятора: unavailable"
                         android:textColor="?android:attr/textColorPrimary" />
 
                 </LinearLayout>
@@ -137,7 +137,7 @@
                         android:id="@+id/fuel_rate"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Частота насоса: unavailable Гц"
+                        android:text="Частота насоса: unavailable"
                         android:textColor="?android:attr/textColorPrimary" />
 
                 </LinearLayout>
@@ -161,7 +161,7 @@
                         android:id="@+id/glow_plug"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Свеча накаливания: Неактивна"
+                        android:text="Свеча накаливания: unavailable"
                         android:textColor="?android:attr/textColorPrimary" />
 
                 </LinearLayout>
@@ -234,7 +234,7 @@
                         android:id="@+id/webasto_fail"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Ошибки Webasto: Нет"
+                        android:text="Ошибки Webasto: unavailable"
                         android:textColor="?android:attr/textColorPrimary" />
 
                 </LinearLayout>

@@ -334,8 +334,8 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             "fuel_need" to Regex("""FN:\s*(\S+)"""),
             "glow_left" to Regex("""Gl:\s*(\S+)"""),
             "cycle_time" to Regex("""CyTim:\s*(\S+)"""),
-            "message" to Regex("""I:\s*(\S+)"""),
-            "final_fuel" to Regex("""FinalFuel:\s*(\S+\s+\S+)"""),
+            "message" to Regex("""I:\s*([^|]+)"""),
+            "final_fuel" to Regex("""FinalFuel:\s*(\S+)"""),
             "burn" to Regex("""Burn:\s*(\S+)""")
         )
 

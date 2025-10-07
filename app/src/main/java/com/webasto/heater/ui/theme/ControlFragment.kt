@@ -149,7 +149,6 @@ class ControlFragment : BaseHeaterFragment() {
         }
 
         textView.text = "$title$displayStatus"
-        textView.setTextColor(ContextCompat.getColor(requireContext(), android.R.color.white))
     }
 
 

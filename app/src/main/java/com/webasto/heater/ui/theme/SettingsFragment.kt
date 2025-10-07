@@ -154,31 +154,33 @@ class SettingsFragment : BaseHeaterFragment() {
             override fun onStopTrackingTouch(seekBar: android.widget.SeekBar) {}
         })
 
-        // Макс. ШИМ вентилятора (0-255)
-        binding.fanPwmSeekbar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar, progress: Int, fromUser: Boolean) {
-                binding.fanPwmValue.text = progress.toString()
-                if (fromUser) {
-                    pendingSettings["max_pwm_fan"] = progress
-                    updateSettingsStatus("Есть несохраненные изменения")
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar) {}
-        })
+// Макс. ШИМ вентилятора (0-255)
+binding.fanPwmSeekbar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+    override fun onProgressChanged(seekBar: android.widget.SeekBar, progress: Int, fromUser: Boolean) {
+        val percentage = (progress * 100) / 255
+        binding.fanPwmValue.text = "$progress ($percentage%)"
+        if (fromUser) {
+            pendingSettings["max_pwm_fan"] = progress
+            updateSettingsStatus("Есть несохраненные изменения")
+        }
+    }
+    override fun onStartTrackingTouch(seekBar: android.widget.SeekBar) {}
+    override fun onStopTrackingTouch(seekBar: android.widget.SeekBar) {}
+})
 
-        // Яркость свечи (0-255)
-        binding.glowBrightnessSeekbar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar, progress: Int, fromUser: Boolean) {
-                binding.glowBrightnessValue.text = progress.toString()
-                if (fromUser) {
-                    pendingSettings["glow_brightness"] = progress
-                    updateSettingsStatus("Есть несохраненные изменения")
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar) {}
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar) {}
-        })
+// Яркость свечи (0-255)
+binding.glowBrightnessSeekbar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+    override fun onProgressChanged(seekBar: android.widget.SeekBar, progress: Int, fromUser: Boolean) {
+        val percentage = (progress * 100) / 255
+        binding.glowBrightnessValue.text = "$progress ($percentage%)"
+        if (fromUser) {
+            pendingSettings["glow_brightness"] = progress
+            updateSettingsStatus("Есть несохраненные изменения")
+        }
+    }
+    override fun onStartTrackingTouch(seekBar: android.widget.SeekBar) {}
+    override fun onStopTrackingTouch(seekBar: android.widget.SeekBar) {}
+})
 
         // Время розжига свечи (0-60000 мс)
         binding.glowFadeInSeekbar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
