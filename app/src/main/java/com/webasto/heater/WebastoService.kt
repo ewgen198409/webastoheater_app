@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
 import android.app.PendingIntent
+import androidx.core.content.ContextCompat
 
 class WebastoService : Service() {
     companion object {
@@ -42,7 +43,7 @@ class WebastoService : Service() {
             addAction(ACTION_TURN_ON_HEATER)
             addAction(ACTION_TURN_OFF_HEATER)
         }
-        registerReceiver(notificationActionReceiver, filter)
+        ContextCompat.registerReceiver(this, notificationActionReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
         Log.d(TAG, "WebastoService created")
     }
 
@@ -200,11 +201,11 @@ class WebastoService : Service() {
     }
 
     private fun createNotification(): Notification {
-        val actionIntent = if (isHeaterOn) {
-            Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_OFF_HEATER }
-        } else {
-            Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_ON_HEATER }
-        }
+val actionIntent = if (isHeaterOn) {
+    Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_OFF_HEATER }
+} else {
+    Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_ON_HEATER }
+}
 
         val pendingIntent: PendingIntent =
             PendingIntent.getService(this, 0, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -220,11 +221,11 @@ class WebastoService : Service() {
     }
 
     private fun updateNotification(status: String) {
-        val actionIntent = if (isHeaterOn) {
-            Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_OFF_HEATER }
-        } else {
-            Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_ON_HEATER }
-        }
+val actionIntent = if (isHeaterOn) {
+    Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_OFF_HEATER }
+} else {
+    Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_ON_HEATER }
+}
 
         val pendingIntent: PendingIntent =
             PendingIntent.getService(this, 0, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
