@@ -66,7 +66,7 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        
+
         // Получаем версию приложения и устанавливаем в TextView
         val versionName = packageManager.getPackageInfo(packageName, 0).versionName
         findViewById<TextView>(R.id.app_version).text = "v$versionName"
@@ -167,11 +167,11 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             Toast.makeText(this, "Нет сопряженных устройств", Toast.LENGTH_SHORT).show()
             return
         }
-    
+
         // Проверка разрешения BLUETOOTH_CONNECT
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED) {
             val deviceNames = pairedDevices.map { it.name ?: "Unknown Device" }.toTypedArray()
-        
+
             AlertDialog.Builder(this)
                 .setTitle("Выберите Bluetooth устройство")
                 .setItems(deviceNames) { _, which ->
@@ -249,8 +249,11 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             isBound = false
         }
 
-        val intent = Intent(this, WebastoService::class.java)
-        stopService(intent)
+        val webastoIntent = Intent(this, WebastoService::class.java)
+        stopService(webastoIntent)
+
+        val fuelCalculatorIntent = Intent(this, FuelCalculatorService::class.java)
+        stopService(fuelCalculatorIntent)
     }
 
     // Реализация методов BluetoothDataListener
@@ -375,8 +378,8 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
                 }
             }
         }
-        
-        
+
+
         // Обработка состояния (St:) как в webasto.py
         if (message.contains("St:")) {
             try {
@@ -414,7 +417,7 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
         } else {
             button.text = "Подключить Bluetooth"
             button.setBackgroundResource(R.drawable.button_3d_effect_off)
-          }
+        }
     }
 
     private fun parseSettings(data: String) {

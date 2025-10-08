@@ -41,12 +41,18 @@
             </intent-filter>
         </activity>
 
-        <!-- Service declaration inside application tag -->
+        <!-- Service declaration for Webasto -->
         <service
             android:name=".WebastoService"
             android:enabled="true"
             android:exported="false"
-                android:foregroundServiceType="connectedDevice|location" />
+            android:foregroundServiceType="connectedDevice|location" />
+            
+        <!-- Service declaration for Fuel Calculator -->
+        <service
+            android:name=".FuelCalculatorService"
+            android:enabled="true"
+            android:exported="false" />
 
     </application>
 </manifest>

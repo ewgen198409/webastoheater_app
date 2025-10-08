@@ -90,7 +90,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Температура выхлопа: unavailable"
-                        android:textColor="?android:attr/textColorPrimary" />
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="15sp" />
 
                 </LinearLayout>
 
@@ -114,7 +115,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Скорость вентилятора: unavailable"
-                        android:textColor="?android:attr/textColorPrimary" />
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="15sp" />
 
                 </LinearLayout>
 
@@ -138,7 +140,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Частота насоса: unavailable"
-                        android:textColor="?android:attr/textColorPrimary" />
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="15sp" />
 
                 </LinearLayout>
 
@@ -146,23 +149,32 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="8dp"
-                    android:gravity="center_vertical">
+                    android:padding="8dp">
 
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
-                        android:src="@drawable/candle"
                         android:layout_marginEnd="12dp"
+                        android:src="@drawable/candle"
                         app:tint="?android:attr/textColorPrimary" />
 
                     <TextView
-                        android:id="@+id/glow_plug"
-                        android:layout_width="match_parent"
+                        android:id="@+id/glow_plug_title"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Свеча накаливания: unavailable"
-                        android:textColor="?android:attr/textColorPrimary" />
+                        android:text="Свеча накаливания: "
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/glow_plug_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="unavailable"
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="16sp" />
 
                 </LinearLayout>
 
@@ -186,7 +198,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Время цикла: unavailable"
-                        android:textColor="?android:attr/textColorPrimary" />
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="15sp" />
 
                 </LinearLayout>
 
@@ -211,7 +224,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Попытка запуска: unavailable"
-                        android:textColor="?android:attr/textColorPrimary" />
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="15sp" />
 
                 </LinearLayout>
 
@@ -235,7 +249,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Ошибки Webasto: unavailable"
-                        android:textColor="?android:attr/textColorPrimary" />
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="15sp" />
 
                 </LinearLayout>
 
@@ -259,7 +274,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Текущий режим: unavailable"
-                        android:textColor="?android:attr/textColorPrimary" />
+                        android:textColor="?android:attr/textColorPrimary"
+                        android:textSize="15sp" />
 
                 </LinearLayout>
 

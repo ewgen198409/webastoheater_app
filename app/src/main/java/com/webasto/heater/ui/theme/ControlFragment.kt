@@ -1,19 +1,22 @@
 package com.webasto.heater.ui.theme
 
+import android.animation.ValueAnimator
+import android.graphics.LinearGradient
+import android.graphics.Matrix
+import android.graphics.Shader
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-
 import androidx.core.content.ContextCompat
 import com.webasto.heater.R
 import com.webasto.heater.databinding.FragmentControlBinding
-
 
 class ControlFragment : BaseHeaterFragment() {
 
     private var _binding: FragmentControlBinding? = null
     private val binding get() = _binding!!
+    private var glowPlugAnimator: ValueAnimator? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -39,7 +42,7 @@ class ControlFragment : BaseHeaterFragment() {
         binding.ignitFail.tag = "Попытка запуска: "
         binding.currentStateText.tag = "Текущий режим: "
         binding.webastoFail.tag = "Ошибки Webasto: "
-        binding.glowPlug.tag = "Свеча накаливания: "
+        // glow_plug больше не используется, поэтому мы его удалили
     }
 
     private fun setupListeners() {
@@ -93,7 +96,7 @@ class ControlFragment : BaseHeaterFragment() {
 
             // Бинарные сенсоры с цветами
             updateWebastoFailWithColor(binding.webastoFail, data["webasto_fail"])
-            updateGlowPlugWithColor(binding.glowPlug, data["glow_left"]) // Используем glow_left
+            updateGlowPlugWithColor(binding.glowPlugStatus, data["glow_left"]) // Используем glow_plug_status
 
             // Определяем состояние нагрева по скорости вентилятора
             val isHeaterOn = determineHeaterStateByFanSpeed(data)
@@ -121,34 +124,42 @@ class ControlFragment : BaseHeaterFragment() {
     }
 
     private fun updateGlowPlugWithColor(textView: android.widget.TextView, value: Any?) {
-        val title = textView.tag?.toString() ?: ""
-
-        val displayStatus = when (value) {
-            is String -> {
-                when {
-                    value >= "1" -> "Активна"
-                    value == "0" -> "Неактивна"
-                    value.toIntOrNull() != null -> {
-                        val numValue = value.toInt()
-                        if (numValue != 0) "Активна" else "Неактивна"
-                    }
-                    value.equals("true", true) -> "Активна"
-                    value.equals("false", true) -> "Неактивна"
-                    value.isNotEmpty() && value != "unavailable" -> "Активна ($value)"
-                    else -> "Неактивна"
-                }
-            }
-            is Number -> {
-                val numValue = value.toInt()
-                if (numValue != 0) "Активна" else "Неактивна"
-            }
-            is Boolean -> {
-                if (value) "Активна" else "Неактивна"
-            }
-            else -> "Неактивна"
+        val isActive = when (value) {
+            is String -> value >= "1" || value.toIntOrNull() != 0 || value.equals("true", true)
+            is Number -> value.toInt() != 0
+            is Boolean -> value
+            else -> false
         }
 
-        textView.text = "$title$displayStatus"
+        if (isActive) {
+            textView.text = "Активна"
+            if (glowPlugAnimator == null) {
+                glowPlugAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+                    duration = 1000
+                    repeatMode = ValueAnimator.REVERSE
+                    repeatCount = ValueAnimator.INFINITE
+                    addUpdateListener { animation ->
+                        val shader = LinearGradient(
+                            0f, 0f, textView.width.toFloat(), 0f,
+                            ContextCompat.getColor(requireContext(), android.R.color.holo_red_dark),
+                            ContextCompat.getColor(requireContext(), android.R.color.white),
+                            Shader.TileMode.CLAMP
+                        )
+                        val matrix = Matrix()
+                        matrix.setTranslate(animation.animatedValue as Float * textView.width, 0f)
+                        shader.setLocalMatrix(matrix)
+                        textView.paint.shader = shader
+                        textView.invalidate()
+                    }
+                    start()
+                }
+            }
+        } else {
+            textView.text = "Неактивна"
+            glowPlugAnimator?.cancel()
+            glowPlugAnimator = null
+            textView.paint.shader = null
+        }
     }
 
 
@@ -264,6 +275,8 @@ class ControlFragment : BaseHeaterFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        glowPlugAnimator?.cancel()
+        glowPlugAnimator = null
         _binding = null
     }
 }

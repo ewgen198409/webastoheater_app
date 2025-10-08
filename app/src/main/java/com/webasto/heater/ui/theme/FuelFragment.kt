@@ -1,9 +1,16 @@
 package com.webasto.heater.ui.theme
 
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
+import com.webasto.heater.FuelCalculatorService
 import com.webasto.heater.databinding.FragmentFuelBinding
 
 class FuelFragment : BaseHeaterFragment() {
@@ -11,13 +18,22 @@ class FuelFragment : BaseHeaterFragment() {
     private var _binding: FragmentFuelBinding? = null
     private val binding get() = _binding!!
 
-    // Переменные для хранения данных и расчетов
-    private var pumpSize: Float = 0f
-    private var fuelHz: Float = 0f
-    private var totalFuelConsumed: Double = 0.0 // в литрах
-    private var lastUpdateTime: Long = 0L
-    private var calculationThread: Thread? = null
-    private var isRunning = true
+    private var fuelService: FuelCalculatorService? = null
+    private var isBound = false
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            val binder = service as FuelCalculatorService.LocalBinder
+            fuelService = binder.getService()
+            isBound = true
+            setupObservers()
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            isBound = false
+            fuelService = null
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -32,12 +48,20 @@ class FuelFragment : BaseHeaterFragment() {
         super.onViewCreated(view, savedInstanceState)
         setupListeners()
         initializeDisplay()
-        startRealTimeCalculation()
+        startAndBindService()
     }
 
+    private fun startAndBindService() {
+        val intent = Intent(activity, FuelCalculatorService::class.java)
+        // Запускаем сервис как Foreground Service
+        ContextCompat.startForegroundService(requireContext(), intent)
+        // Привязываемся к сервису, чтобы получать обновления
+        activity?.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+    }
+    
     private fun setupListeners() {
         binding.resetFuelBtn.setOnClickListener {
-            resetFuelConsumption()
+            fuelService?.resetFuelConsumption()
         }
     }
 
@@ -48,85 +72,27 @@ class FuelFragment : BaseHeaterFragment() {
         binding.pumpSize.text = "-- мл/1000имп"
     }
 
-    private fun startRealTimeCalculation() {
-        calculationThread = Thread {
-            while (isRunning) {
-                try {
-                    Thread.sleep(1000) // Обновляем каждую секунду
-                    updateFuelCalculations()
-                } catch (e: InterruptedException) {
-                    break
-                }
-            }
+    private fun setupObservers() {
+        fuelService?.totalFuelConsumed?.observe(viewLifecycleOwner) { consumed ->
+            binding.currentFuel.text = String.format("%.3f л", consumed)
         }
-        calculationThread?.start()
+        fuelService?.consumptionPerHour?.observe(viewLifecycleOwner) { perHour ->
+            binding.fuelPerHour.text = String.format("%.3f л/ч", perHour)
+        }
     }
 
     override fun updateData(data: Map<String, Any>) {
         activity?.runOnUiThread {
-            // Обновляем базовые данные
             updateTextView(binding.fuelPumpRate, data["fuel_hz"], "Гц")
             updateTextView(binding.pumpSize, data["pump_size"], "мл/1000имп")
 
-            // Получаем текущие значения для расчетов
-            data["pump_size"]?.let {
-                pumpSize = it.toString().toFloatOrNull() ?: 0f
-            }
-
-            data["fuel_hz"]?.let {
-                fuelHz = it.toString().toFloatOrNull() ?: 0f
+            val pumpSize = data["pump_size"]?.toString()?.toFloatOrNull() ?: 0f
+            val fuelHz = data["fuel_hz"]?.toString()?.toFloatOrNull() ?: 0f
+            
+            if (isBound) {
+                fuelService?.updateData(pumpSize, fuelHz)
             }
         }
-    }
-
-    private fun updateFuelCalculations() {
-        val currentTime = System.currentTimeMillis()
-
-        // Первое обновление - инициализация
-        if (lastUpdateTime == 0L) {
-            lastUpdateTime = currentTime
-            return
-        }
-
-        // Вычисляем время прошедшее с последнего обновления в часах
-        val timeDeltaHours = (currentTime - lastUpdateTime) / (1000.0 * 60 * 60)
-
-        if (timeDeltaHours > 0 && pumpSize > 0 && fuelHz > 0) {
-            activity?.runOnUiThread {
-                // Расчет текущего расхода в л/ч
-                val consumptionPerHour = calculateFuelConsumptionPerHour()
-                binding.fuelPerHour.text = String.format("%.3f л/ч", consumptionPerHour)
-
-                // Обновляем общий расход (интегрируем по времени)
-                val fuelConsumed = consumptionPerHour * timeDeltaHours
-                totalFuelConsumed += fuelConsumed
-                binding.currentFuel.text = String.format("%.3f л", totalFuelConsumed)
-
-                lastUpdateTime = currentTime
-            }
-        } else if (fuelHz == 0f) {
-            // Если частота насоса 0, показываем нулевой расход
-            activity?.runOnUiThread {
-                binding.fuelPerHour.text = "0.000 л/ч"
-            }
-        }
-    }
-
-    private fun calculateFuelConsumptionPerHour(): Float {
-        // Формула: (pump_size * fuel_hz * 3.6) / 1000
-        // pump_size - мл за 1000 импульсов
-        // fuel_hz - импульсов в секунду
-        // 3.6 = (3600 секунд в часе / 1000 мл в литре)
-        // Результат в литрах в час
-
-        return (pumpSize * fuelHz * 3.6f) / 1000f
-    }
-
-    private fun resetFuelConsumption() {
-        totalFuelConsumed = 0.0
-        lastUpdateTime = System.currentTimeMillis()
-        binding.currentFuel.text = "0.000 л"
-        binding.fuelPerHour.text = "0.000 л/ч"
     }
 
     private fun updateTextView(textView: android.widget.TextView, value: Any?, unit: String) {
@@ -139,8 +105,10 @@ class FuelFragment : BaseHeaterFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        isRunning = false
-        calculationThread?.interrupt()
+        if (isBound) {
+            activity?.unbindService(connection)
+            isBound = false
+        }
         _binding = null
     }
 }

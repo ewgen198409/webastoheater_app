@@ -27,7 +27,7 @@
             "args": [
                 "install",
                 "-r",
-                "app/build/outputs/apk/release/WebastoHeater-1.1.0.apk"
+                "app/build/outputs/apk/release/WebastoHeater-1.1.1.apk"
             ],
             "group": {
                 "kind": "test",
