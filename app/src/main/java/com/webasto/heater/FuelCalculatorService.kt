@@ -69,6 +69,7 @@ class FuelCalculatorService : Service() {
             .setContentText("Общий расход: ${totalFuelConsumed.value} л. \nТекущий расход: ${currentConsumptionPerHour.value} л/ч")
             .setSmallIcon(R.drawable.gas) // Замените на вашу иконку
             .setContentIntent(pendingIntent)
+            .setSilent(true) // Делаем уведомление беззвучным
             .build()
     }
 
@@ -77,8 +78,10 @@ class FuelCalculatorService : Service() {
             val serviceChannel = NotificationChannel(
                 CHANNEL_ID,
                 "Fuel Calculator Service Channel",
-                NotificationManager.IMPORTANCE_DEFAULT
-            )
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                setSound(null, null) // Делаем уведомление беззвучным
+            }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
         }

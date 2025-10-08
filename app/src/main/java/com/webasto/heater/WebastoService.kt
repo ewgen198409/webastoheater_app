@@ -194,7 +194,9 @@ class WebastoService : Service() {
                 CHANNEL_ID,
                 "Webasto Service Channel",
                 NotificationManager.IMPORTANCE_LOW
-            )
+            ).apply {
+                setSound(null, null) // Делаем уведомление беззвучным
+            }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
         }
@@ -217,6 +219,7 @@ val actionIntent = if (isHeaterOn) {
             .setContentText("Мониторинг работы Webasto")
             .setSmallIcon(R.drawable.fire)
             .addAction(R.drawable.fire, actionText, pendingIntent) // Одна кнопка, меняющая текст и действие
+            .setSilent(true) // Делаем уведомление беззвучным
             .build()
     }
 
@@ -237,6 +240,7 @@ val actionIntent = if (isHeaterOn) {
             .setContentText("Статус: $status")
             .setSmallIcon(R.drawable.fire)
             .addAction(R.drawable.fire, actionText, pendingIntent) // Одна кнопка, меняющая текст и действие
+            .setSilent(true) // Делаем уведомление беззвучным
             .build()
 
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
