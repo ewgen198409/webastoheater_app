@@ -34,6 +34,7 @@ class ControlFragment : BaseHeaterFragment() {
     }
 
     private fun saveOriginalTitles() {
+        binding.inTempText.tag = "Температура впуска: "
         binding.exhaustTemp.tag = "Температура выхлопа: "
         binding.fanSpeed.tag = "Скорость вентилятора: "
         binding.fuelRate.tag = "Частота насоса: "
@@ -82,6 +83,7 @@ class ControlFragment : BaseHeaterFragment() {
     override fun updateData(data: Map<String, Any>) {
         activity?.runOnUiThread {
             // Основные сенсоры
+            updateTextViewWithTitle(binding.inTempText, data["in_temp"], "°C")
             updateTextViewWithTitle(binding.exhaustTemp, data["exhaust_temp"], "°C")
             updateTextViewWithTitle(binding.fanSpeed, data["fan_speed"], "%")
             updateTextViewWithTitle(binding.fuelRate, data["fuel_hz"], "Гц")

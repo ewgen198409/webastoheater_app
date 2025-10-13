@@ -48,11 +48,6 @@
             android:exported="false"
             android:foregroundServiceType="connectedDevice|location" />
             
-        <!-- Service declaration for Fuel Calculator -->
-        <service
-            android:name=".FuelCalculatorService"
-            android:enabled="true"
-            android:exported="false" />
 
     </application>
 </manifest>

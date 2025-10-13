@@ -252,8 +252,7 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
         val webastoIntent = Intent(this, WebastoService::class.java)
         stopService(webastoIntent)
 
-        val fuelCalculatorIntent = Intent(this, FuelCalculatorService::class.java)
-        stopService(fuelCalculatorIntent)
+
     }
 
     // Реализация методов BluetoothDataListener
@@ -291,35 +290,35 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
     override fun onMessageReceived(message: String) {
         Log.d("BluetoothDebug", "Raw message: $message")
 
-        when {
-            message.startsWith("CURRENT_SETTINGS:") -> {
-                parseSettings(message.substring(17))
-            }
-            message.startsWith("SETTINGS_OK") -> {
-                Log.d("BluetoothDebug", "Device confirmed settings update")
-                runOnUiThread {
-                    Toast.makeText(this, "Настройки сохранены", Toast.LENGTH_SHORT).show()
-                    // Можно обновить статус в SettingsFragment через адаптер
-                    viewPagerAdapter.updateAllFragments(emptyMap()) // или передать специальный флаг
+        message.split('\n').forEach { line ->
+            if (line.isBlank()) return@forEach // Пропускаем пустые строки
+
+            when {
+                line.startsWith("CURRENT_SETTINGS:") -> {
+                    parseSettings(line.substring(17))
                 }
-            }
-            message.startsWith("SETTINGS_ERROR") -> {
-                Log.d("BluetoothDebug", "Device reported settings error")
-                runOnUiThread {
-                    Toast.makeText(this, "Ошибка сохранения настроек", Toast.LENGTH_SHORT).show()
+                line.startsWith("SETTINGS_OK") -> {
+                    Log.d("BluetoothDebug", "Device confirmed settings update")
+                    runOnUiThread {
+                        Toast.makeText(this, "Настройки сохранены", Toast.LENGTH_SHORT).show()
+                        viewPagerAdapter.updateAllFragments(emptyMap()) 
+                    }
                 }
-            }
-            message.contains("может быть изменена только через WebSocket") -> {
-                // Это сообщение от устройства - игнорируем его, так как команды все равно работают
-                Log.d("BluetoothDebug", "Device WebSocket warning (ignored)")
-            }
-            message.startsWith("DEBUG:") -> {
-                // Игнорируем debug сообщения
-                Log.d("BluetoothDebug", "Device debug: $message")
-            }
-            else -> {
-                // Парсим обычные данные Webasto
-                parseSerialData(message)
+                line.startsWith("SETTINGS_ERROR") -> {
+                    Log.d("BluetoothDebug", "Device reported settings error")
+                    runOnUiThread {
+                        Toast.makeText(this, "Ошибка сохранения настроек", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                line.contains("может быть изменена только через WebSocket") -> {
+                    Log.d("BluetoothDebug", "Device WebSocket warning (ignored)")
+                }
+                line.startsWith("DEBUG:") -> {
+                    Log.d("BluetoothDebug", "Device debug: $line")
+                }
+                else -> {
+                    parseSerialData(line)
+                }
             }
         }
     }
@@ -339,7 +338,12 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             "cycle_time" to Regex("""CyTim:\s*(\S+)"""),
             "message" to Regex("""I:\s*([^|]+)"""),
             "final_fuel" to Regex("""FinalFuel:\s*(\S+)"""),
-            "burn" to Regex("""Burn:\s*(\S+)""")
+            "burn" to Regex("""Burn:\s*(\S+)"""),
+            "consumed_liters" to Regex("""TFC: (\S+)"""),
+            "fuel_hour" to Regex("""FCH: (\S+)"""),
+            "in_temp" to Regex("""InTemp: (\S+)"""),
+            "current_state" to Regex("""St: (\S+)""")
+            
         )
 
         var dataFound = false
@@ -477,9 +481,6 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             stopWebastoService()
             bluetoothManager.disconnect()
             Log.d("MainActivity", "Real destroy - services stopped")
-        } else {
-            // Смена конфигурации - сохраняем соединение
-            Log.d("MainActivity", "Config change - services preserved")
         }
     }
 }

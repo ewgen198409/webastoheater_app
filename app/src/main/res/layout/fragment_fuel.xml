@@ -57,14 +57,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Общий расход топлива"
+                    android:text="Потрачено топлива"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@android:color/white"
                     android:gravity="center" />
 
                 <TextView
-                    android:id="@+id/current_fuel"
+                    android:id="@+id/consumed_liters_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="0.000 л"
@@ -95,14 +95,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Текущий расход"
+                    android:text="Расход в час"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     android:textColor="@android:color/white"
                     android:gravity="center" />
 
                 <TextView
-                    android:id="@+id/fuel_per_hour"
+                    android:id="@+id/fuel_hour_text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="0.000 л/ч"
