@@ -41,6 +41,10 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
     private var webastoService: WebastoService? = null
     private var isBound = false
 
+    // Для обработки сканирования WiFi
+    private var isScanningWifi = false
+    private val wifiScanBuffer = mutableListOf<String>()
+
     // Соединение с сервисом
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -258,7 +262,7 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
     // Реализация методов BluetoothDataListener
     override fun onDataUpdated(data: Map<String, Any>) {
         runOnUiThread {
-            viewPagerAdapter.updateAllFragments(data)
+            viewPagerAdapter.updateAllFragments(currentData.toMap()) // Pass a copy of currentData
         }
     }
 
@@ -294,6 +298,22 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             if (line.isBlank()) return@forEach // Пропускаем пустые строки
 
             when {
+                line == "WIFI_SCAN_START" -> {
+                    isScanningWifi = true
+                    wifiScanBuffer.clear()
+                    Log.d("BluetoothDebug", "WIFI_SCAN_START detected. Starting buffer.")
+                }
+                line == "WIFI_SCAN_END" -> {
+                    isScanningWifi = false
+                    currentData["WIFI_SCAN_RAW_RESULTS"] = wifiScanBuffer.joinToString(System.lineSeparator())
+                    Log.d("BluetoothDebug", "WIFI_SCAN_END detected. Buffered results: ${currentData["WIFI_SCAN_RAW_RESULTS"]}")
+                    runOnUiThread { viewPagerAdapter.updateAllFragments(currentData.toMap()) }
+                    wifiScanBuffer.clear()
+                }
+                isScanningWifi -> {
+                    wifiScanBuffer.add(line)
+                    Log.d("BluetoothDebug", "Buffering WiFi scan line: $line")
+                }
                 line.startsWith("CURRENT_SETTINGS:") -> {
                     parseSettings(line.substring(17))
                 }
@@ -315,6 +335,10 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
                 }
                 line.startsWith("DEBUG:") -> {
                     Log.d("BluetoothDebug", "Device debug: $line")
+                }
+                line.startsWith("WIFI_STATUS:") -> { 
+                    currentData["WIFI_STATUS"] = line.substringAfter("WIFI_STATUS:")
+                    runOnUiThread { viewPagerAdapter.updateAllFragments(currentData.toMap()) }
                 }
                 else -> {
                     parseSerialData(line)

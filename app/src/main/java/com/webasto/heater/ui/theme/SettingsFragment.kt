@@ -2,15 +2,25 @@ package com.webasto.heater.ui.theme
 
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.PreferenceManager
+import com.webasto.heater.BluetoothManager
+import com.webasto.heater.BluetoothDataListener
+import com.webasto.heater.MainActivity
 import com.webasto.heater.databinding.FragmentSettingsBinding
+import android.widget.EditText
+import android.widget.ArrayAdapter
+import android.widget.ListView
+import android.widget.TextView
+import android.widget.Button
 
-class SettingsFragment : BaseHeaterFragment() {
+class SettingsFragment : BaseHeaterFragment(), BluetoothDataListener {
 
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
@@ -20,6 +30,12 @@ class SettingsFragment : BaseHeaterFragment() {
     private val pendingSettings = mutableMapOf<String, Any>()
     // Флаг, что настройки были загружены
     private var settingsLoaded = false
+
+    private var wifiStatus: Map<String, String>? = null
+    private var wifiScanResults: List<Pair<String, Int>> = listOf() // Pair<SSID, RSSI>
+
+    private var currentWifiStatusTextView: TextView? = null // Added this line
+    private var currentWifiListView: ListView? = null // Added this line
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -75,6 +91,10 @@ class SettingsFragment : BaseHeaterFragment() {
 
         binding.resetSettingsBtn.setOnClickListener {
             sendCommand("RESET_SETTINGS")
+        }
+
+        binding.wifiSettingsBtn.setOnClickListener {
+            showWifiSettingsDialog()
         }
     }
 
@@ -251,6 +271,24 @@ class SettingsFragment : BaseHeaterFragment() {
         // НЕ обновляем настройки автоматически при получении данных
         // Настройки будут обновляться только при явном вызове loadSettings()
         // или при подключении через специальный флаг
+        data["WIFI_STATUS"]?.let {
+            if (it is String) {
+                parseWifiStatus(it)
+                currentWifiStatusTextView?.let { tv ->
+                    updateWifiStatusDisplay(tv)
+                }
+            }
+        }
+        data["WIFI_SCAN_RAW_RESULTS"]?.let { 
+            if (it is String) {
+                Log.d("SettingsFragment", "Received raw WiFi scan results: $it")
+                parseWifiScanResults(it)
+                currentWifiListView?.let { lv ->
+                    val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, wifiScanResults.map { "${it.first} (${it.second} dBm)" })
+                    lv.adapter = adapter
+                }
+            }
+        }
     }
 
     // Новый метод для явной загрузки настроек (вызывается из MainActivity при подключении)
@@ -281,8 +319,177 @@ class SettingsFragment : BaseHeaterFragment() {
         }
     }
 
+    private fun showWifiSettingsDialog() {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(com.webasto.heater.R.layout.dialog_wifi_settings, null)
+        val tvWifiStatus = dialogView.findViewById<TextView>(com.webasto.heater.R.id.tv_wifi_status)
+        val btnScanWifi = dialogView.findViewById<Button>(com.webasto.heater.R.id.btn_scan_wifi)
+        val lvWifiNetworks = dialogView.findViewById<ListView>(com.webasto.heater.R.id.lv_wifi_networks)
+        val btnResetWifi = dialogView.findViewById<Button>(com.webasto.heater.R.id.btn_reset_wifi)
+        val btnRebootEsp = dialogView.findViewById<Button>(com.webasto.heater.R.id.btn_reboot_esp)
+
+        currentWifiStatusTextView = tvWifiStatus // Assigned here
+        currentWifiListView = lvWifiNetworks // Assigned here
+
+        val alertDialog = AlertDialog.Builder(requireContext())
+            .setTitle("Настройки WiFi")
+            .setView(dialogView)
+            .setNegativeButton("Закрыть", null)
+            .create()
+
+        alertDialog.setOnDismissListener { // Added this listener
+            currentWifiStatusTextView = null
+            currentWifiListView = null
+        }
+
+        updateWifiStatusDisplay(tvWifiStatus)
+        // Initially populate the list if scan results are already available
+        if (wifiScanResults.isNotEmpty()) {
+            val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, wifiScanResults.map { "${it.first} (${it.second} dBm)" })
+            lvWifiNetworks.adapter = adapter
+        }
+
+        btnScanWifi.setOnClickListener {
+            sendCommand("SCAN_WIFI")
+            Toast.makeText(requireContext(), "Сканирование WiFi сетей...", Toast.LENGTH_SHORT).show()
+        }
+
+        lvWifiNetworks.setOnItemClickListener { parent, view, position, id ->
+            val selectedNetwork = wifiScanResults[position]
+            showConnectWifiDialog(selectedNetwork.first)
+        }
+
+        btnResetWifi.setOnClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Сброс настроек WiFi")
+                .setMessage("Вы уверены, что хотите сбросить настройки WiFi на устройстве? Это приведет к перезагрузке устройства.")
+                .setPositiveButton("Да") { _, _ ->
+                    sendCommand("RESET_WIFI")
+                    Toast.makeText(requireContext(), "Сброс настроек WiFi...", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+        }
+
+        btnRebootEsp.setOnClickListener {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Перезагрузка устройства")
+                .setMessage("Вы уверены, что хотите перезагрузить устройство?")
+                .setPositiveButton("Да") { _, _ ->
+                    sendCommand("REBOOT_ESP")
+                    Toast.makeText(requireContext(), "Перезагрузка устройства...", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Отмена", null)
+                .show()
+        }
+        alertDialog.show()
+        sendCommand("GET_WIFI_STATUS") // Запрашиваем статус при открытии диалога
+    }
+
+    private fun updateWifiStatusDisplay(tvWifiStatus: TextView) {
+        wifiStatus?.let { status ->
+            val mode = status["mode"] ?: "N/A"
+            val ssid = status["ssid"] ?: "N/A"
+            val ip = status["ip"] ?: "N/A"
+            val connectionStatus = status["status"] ?: "N/A"
+            tvWifiStatus.text = "Режим: $mode\nSSID: $ssid\nIP: $ip\nСтатус: $connectionStatus"
+        } ?: run {
+            tvWifiStatus.text = "Статус WiFi: Неизвестно"
+        }
+    }
+
+    private fun parseWifiStatus(statusString: String) {
+        val statusMap = mutableMapOf<String, String>()
+        statusString.split(',').forEach { part ->
+            val keyValue = part.split('=', limit = 2)
+            if (keyValue.size == 2) {
+                statusMap[keyValue[0].trim()] = keyValue[1].trim()
+            }
+        }
+        wifiStatus = statusMap
+    }
+
+    private fun parseWifiScanResults(rawScanResults: String) {
+        Log.d("SettingsFragment", "Parsing raw WiFi scan results: $rawScanResults")
+        val results = mutableListOf<Pair<String, Int>>()
+        rawScanResults.split(System.lineSeparator()).forEach { line ->
+            val ssidMatch = Regex("""SSID: ([^,]+), RSSI: (-?\d+)""").find(line)
+            ssidMatch?.let {
+                val ssid = it.groupValues[1]
+                val rssi = it.groupValues[2].toInt()
+                results.add(Pair(ssid, rssi))
+            }
+        }
+        wifiScanResults = results
+        Log.d("SettingsFragment", "Parsed WiFi scan results: $wifiScanResults")
+    }
+
+    private fun showConnectWifiDialog(ssid: String) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(com.webasto.heater.R.layout.dialog_connect_wifi, null)
+        val etPassword = dialogView.findViewById<EditText>(com.webasto.heater.R.id.et_wifi_password)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Подключиться к WiFi: $ssid")
+            .setView(dialogView)
+            .setPositiveButton("Подключить") { _, _ ->
+                val password = etPassword.text.toString()
+                sendCommand("CONNECT_WIFI:$ssid,${password}")
+                Toast.makeText(requireContext(), "Попытка подключения к $ssid...", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    override fun onDataUpdated(data: Map<String, Any>) {
+        activity?.runOnUiThread {
+            Log.d("SettingsFragment", "onDataUpdated received: $data")
+            // Handle WIFI_STATUS updates
+            data["WIFI_STATUS"]?.let {
+                if (it is String) {
+                    parseWifiStatus(it)
+                    currentWifiStatusTextView?.let { tv -> // Updated this block
+                        updateWifiStatusDisplay(tv)
+                    }
+                }
+            }
+            // Handle WIFI_SCAN_RAW_RESULTS
+            data["WIFI_SCAN_RAW_RESULTS"]?.let {
+                if (it is String) {
+                    Log.d("SettingsFragment", "Received raw WiFi scan results from onDataUpdated: $it")
+                    parseWifiScanResults(it)
+                    currentWifiListView?.let { lv ->
+                        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, wifiScanResults.map { "${it.first} (${it.second} dBm)" })
+                        lv.adapter = adapter
+                        Log.d("SettingsFragment", "Updated ListView with new scan results.")
+                    }
+                }
+            }
+        }
+    }
+
+    override fun onConnectionStatusChanged(connected: Boolean) {
+        // Not directly used in settings fragment for now, but good to have.
+    }
+
+    override fun onError(error: String) {
+        activity?.runOnUiThread {
+            Toast.makeText(requireContext(), "Ошибка WiFi: $error", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onMessageReceived(message: String) {
+        // This is handled in MainActivity, then parsed data is sent via updateData.
+        // The raw WIFI_SCAN messages are now buffered in MainActivity.
+        if (message.startsWith("WIFI_STATUS:")) {
+            parseWifiStatus(message.substringAfter("WIFI_STATUS:"))
+            currentWifiStatusTextView?.let { tv -> 
+                updateWifiStatusDisplay(tv)
+            }
+        }
+        // Removed WIFI_SCAN_START/END handling from here, as it's now in MainActivity
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
+    } 
 }

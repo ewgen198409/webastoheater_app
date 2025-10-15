@@ -457,7 +457,28 @@
         </androidx.cardview.widget.CardView>
 
         <!-- Карточка кнопок управления -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="?attr/colorSurface">
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Управление настройками"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:paddingBottom="8dp" />
 
                 <!-- Кнопки управления настройками -->
                 <LinearLayout
@@ -498,10 +519,25 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Сбросить настройки"
+                    android:layout_marginBottom="8dp"
+                    android:elevation="6dp"
+                    android:background="@drawable/button_3d_effect"
+                    app:backgroundTint="@null"
+                    android:textColor="@android:color/white" />
+
+                <!-- Кнопка настроек WiFi -->
+                <Button
+                    android:id="@+id/wifi_settings_btn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Настройки WiFi"
                     android:elevation="6dp"
                     android:background="@drawable/button_3d_effect"
                     app:backgroundTint="@null"
                     android:textColor="@android:color/white" />
 
             </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
 </ScrollView>

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tv_wifi_status_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Текущий статус WiFi:"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:id="@+id/tv_wifi_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Загрузка..."
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/btn_scan_wifi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сканировать сети WiFi"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:id="@+id/tv_available_networks_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Доступные сети:"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"/>
+
+    <ListView
+        android:id="@+id/lv_wifi_networks"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:background="@android:color/darker_gray"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/btn_reset_wifi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сбросить настройки WiFi"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/btn_reboot_esp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Перезагрузить устройство"/>
+
+</LinearLayout>
