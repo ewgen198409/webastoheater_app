@@ -203,11 +203,11 @@ class WebastoService : Service() {
     }
 
     private fun createNotification(): Notification {
-val actionIntent = if (isHeaterOn) {
-    Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_OFF_HEATER }
-} else {
-    Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_ON_HEATER }
-}
+        val actionIntent = if (isHeaterOn) {
+            Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_OFF_HEATER }
+        } else {
+            Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_ON_HEATER }
+        }
 
         val pendingIntent: PendingIntent =
             PendingIntent.getService(this, 0, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -224,11 +224,11 @@ val actionIntent = if (isHeaterOn) {
     }
 
     private fun updateNotification(status: String) {
-val actionIntent = if (isHeaterOn) {
-    Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_OFF_HEATER }
-} else {
-    Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_ON_HEATER }
-}
+        val actionIntent = if (isHeaterOn) {
+            Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_OFF_HEATER }
+        } else {
+            Intent(this, WebastoService::class.java).apply { action = ACTION_TURN_ON_HEATER }
+        }
 
         val pendingIntent: PendingIntent =
             PendingIntent.getService(this, 0, actionIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
