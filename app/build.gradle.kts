@@ -50,7 +50,6 @@ signingConfigs {
 
     buildFeatures {
         viewBinding = true
-        dataBinding = true
     }
 }
 
