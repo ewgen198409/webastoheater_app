@@ -2,9 +2,11 @@ name: Build & Release APK
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v[0-9]+*'
+    inputs:
+      version:
+        description: 1.1.0
+        required: true
+        type: string
 
 jobs:
   build:
@@ -23,15 +25,26 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
+      - name: Update firmware version in code
+        run: |
+          VERSION="${{ inputs.version }}"
+          sed -i 's/versionName = ".*"/versionName = "'"$VERSION"'"/' app/build.gradle.kts
+          echo "Updated versionName to $VERSION"
+
       - name: Build release APK
         run: ./gradlew assembleRelease
 
-      - name: Create Tag
+      - name: Create tag
         run: |
-          TAG_NAME="v1.1.2-$(date +%Y%m%d)"
+          VERSION="${{ inputs.version }}"
+          TAG_NAME="v$VERSION"
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add app/build.gradle.kts
+          git commit -m "Update firmware version to $VERSION" || echo "No changes to commit"
+          git tag -f $TAG_NAME
+          git push -f origin $TAG_NAME
               
       - name: Create Release
         uses: softprops/action-gh-release@v2
