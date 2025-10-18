@@ -43,6 +43,7 @@
         </LinearLayout>
 
         <ImageView
+            android:id="@+id/webasto_logo"
             android:layout_width="wrap_content"
             android:layout_height="32dp"
             android:src="@drawable/webasto_logo"

@@ -28,6 +28,9 @@ import com.google.android.material.tabs.TabLayoutMediator
 import org.json.JSONObject
 import android.widget.Button
 import android.widget.TextView
+import android.widget.ImageView
+import android.view.LayoutInflater
+import android.widget.ProgressBar
 
 class MainActivity : AppCompatActivity(), BluetoothDataListener {
 
@@ -107,6 +110,8 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
 
     private fun initializeUI() {
         updateConnectionStatus("Отключено")
+
+        // Обработчик клика на кнопку подключения Bluetooth
         binding.connectButton.setOnClickListener {
             if (bluetoothManager.isConnected()) {
                 bluetoothManager.disconnect()
@@ -116,6 +121,12 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             } else {
                 connectViaBluetooth()
             }
+        }
+
+        // Обработчик клика на логотип для проверки обновлений
+        val logoImageView = findViewById<ImageView>(R.id.webasto_logo)
+        logoImageView.setOnClickListener {
+            showUpdateDialog()
         }
     }
 
@@ -479,6 +490,92 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
         } catch (e: Exception) {
             Log.e("BluetoothDebug", "Error parsing settings: ${e.message}")
         }
+    }
+
+    private fun showUpdateDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_update, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+
+        val currentVersionText = dialogView.findViewById<TextView>(R.id.current_version_text)
+        val updateStatusText = dialogView.findViewById<TextView>(R.id.update_status_text)
+        val progressBar = dialogView.findViewById<ProgressBar>(R.id.update_progress)
+        val downloadButton = dialogView.findViewById<Button>(R.id.download_button)
+
+        // Получаем текущую версию приложения
+        val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
+        currentVersionText.text = "Текущая версия: v$currentVersion"
+
+        // Создаем UpdateChecker
+        val updateChecker = UpdateChecker(this)
+
+        // Обработчик проверки обновлений
+        val updateCheckListener = object : UpdateChecker.UpdateCheckListener {
+            override fun onUpdateCheckStarted() {
+                runOnUiThread {
+                    updateStatusText.text = "Проверка обновлений..."
+                    progressBar.visibility = View.VISIBLE
+                    downloadButton.isEnabled = false
+                }
+            }
+
+            override fun onUpdateCheckCompleted(updateInfo: UpdateChecker.UpdateInfo) {
+                runOnUiThread {
+                    progressBar.visibility = View.GONE
+
+                    if (updateInfo.hasUpdate) {
+                        val latestVersion = updateInfo.latestVersion ?: "Неизвестно"
+                        val formattedDate = updateChecker.formatReleaseDate(updateInfo.publishedAt)
+
+                        val statusMessage = buildString {
+                            append("Доступно обновление v$latestVersion")
+                            if (formattedDate.isNotEmpty()) {
+                                append("\nОпубликовано: $formattedDate")
+                            }
+                            if (!updateInfo.releaseNotes.isNullOrEmpty()) {
+                                append("\n\n${updateInfo.releaseNotes}")
+                            }
+                        }
+
+                        updateStatusText.text = statusMessage
+                        downloadButton.isEnabled = true
+                        downloadButton.setOnClickListener {
+                            updateInfo.downloadUrl?.let { downloadUrl ->
+                                val downloadManager = DownloadManager(this@MainActivity)
+                                downloadManager.downloadApk(downloadUrl, latestVersion) { success, _ ->
+                                    if (success) {
+                                        dialog.dismiss()
+                                    }
+                                }
+                            } ?: run {
+                                Toast.makeText(this@MainActivity,
+                                    "Ссылка на скачивание недоступна",
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } else {
+                        updateStatusText.text = "У вас установлена последняя версия"
+                        downloadButton.isEnabled = false
+                    }
+                }
+            }
+
+            override fun onUpdateCheckError(error: String) {
+                runOnUiThread {
+                    progressBar.visibility = View.GONE
+                    updateStatusText.text = "Ошибка проверки обновлений: $error"
+                    downloadButton.isEnabled = false
+                    Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        // Запускаем проверку обновлений
+        updateChecker.checkForUpdates(updateCheckListener)
+
+        dialog.show()
     }
 
     // Метод для получения текущего менеджера из фрагментов
