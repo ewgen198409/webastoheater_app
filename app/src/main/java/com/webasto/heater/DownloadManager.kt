@@ -2,19 +2,75 @@ package com.webasto.heater
 
 import android.app.DownloadManager as AndroidDownloadManager
 import android.content.Context
+import android.content.IntentFilter
+import android.content.BroadcastReceiver
+import android.content.Intent
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import java.io.File
 
 class DownloadManager(private val context: Context) {
 
     private val androidDownloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as AndroidDownloadManager
+    private var downloadReceiver: DownloadCompleteReceiver? = null
+    private var currentDownloadId: Long = -1
+    private var currentVersion: String = ""
+
+    // BroadcastReceiver для отслеживания завершения скачивания
+    private inner class DownloadCompleteReceiver : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val action = intent?.action
+            if (action == AndroidDownloadManager.ACTION_DOWNLOAD_COMPLETE) {
+                val downloadId = intent.getLongExtra(AndroidDownloadManager.EXTRA_DOWNLOAD_ID, -1)
+                if (downloadId == currentDownloadId) {
+                    Log.d("DownloadManager", "Download completed: $downloadId")
+
+                    // Получаем путь к скачанному файлу
+                    val filePath = getDownloadedApkPath(context!!, currentVersion)
+
+                    // Проверяем, что файл существует
+                    val file = File(filePath)
+                    if (file.exists()) {
+                        Log.d("DownloadManager", "APK file exists, starting installation")
+                        Toast.makeText(context, "Скачивание завершено. Запуск установки...", Toast.LENGTH_SHORT).show()
+
+                        // Запускаем установку
+                        installApk(filePath)
+
+                        // Очищаем receiver после использования
+                        cleanupReceiver()
+                    } else {
+                        Log.e("DownloadManager", "APK file not found at: $filePath")
+                        Toast.makeText(context, "Ошибка: файл APK не найден после скачивания", Toast.LENGTH_LONG).show()
+                        cleanupReceiver()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun cleanupReceiver() {
+        downloadReceiver?.let {
+            try {
+                context.unregisterReceiver(it)
+            } catch (e: Exception) {
+                Log.e("DownloadManager", "Error unregistering receiver", e)
+            }
+            downloadReceiver = null
+        }
+        currentDownloadId = -1
+        currentVersion = ""
+    }
 
     fun downloadApk(url: String, version: String, onComplete: (success: Boolean, filePath: String?) -> Unit) {
         try {
+            // Очищаем предыдущий receiver если он был
+            cleanupReceiver()
+
             // Создаем URI для URL
             val uri = Uri.parse(url)
 
@@ -33,9 +89,16 @@ class DownloadManager(private val context: Context) {
 
             Log.d("DownloadManager", "Started download with ID: $downloadId")
 
-            // Здесь можно добавить мониторинг скачивания
-            // Для простоты пока просто показываем уведомление
-            Toast.makeText(context, "Скачивание начато. Проверьте уведомления.", Toast.LENGTH_LONG).show()
+            // Регистрируем BroadcastReceiver для мониторинга завершения скачивания
+            downloadReceiver = DownloadCompleteReceiver()
+            val filter = IntentFilter(AndroidDownloadManager.ACTION_DOWNLOAD_COMPLETE)
+            context.registerReceiver(downloadReceiver, filter)
+
+            // Сохраняем информацию о текущем скачивании
+            currentDownloadId = downloadId
+            currentVersion = version
+
+            Toast.makeText(context, "Скачивание начато. После завершения автоматически запустится установка.", Toast.LENGTH_LONG).show()
 
             onComplete(true, null)
 
