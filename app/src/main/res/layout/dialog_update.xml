@@ -1,54 +1,116 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:padding="20dp"
-    android:background="?android:attr/colorBackground">
+    android:scrollbars="vertical">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Проверка обновлений"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="?android:attr/textColorPrimary"
-        android:gravity="center"
-        android:layout_marginBottom="16dp" />
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:background="?android:attr/colorBackground">
 
-    <TextView
-        android:id="@+id/current_version_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Текущая версия: v1.0.0"
-        android:textSize="16sp"
-        android:textColor="?android:attr/textColorPrimary"
-        android:layout_marginBottom="12dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Проверка обновлений"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="?android:attr/textColorPrimary"
+            android:gravity="center"
+            android:layout_marginBottom="20dp" />
 
-    <TextView
-        android:id="@+id/update_status_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Проверка обновлений..."
-        android:textSize="14sp"
-        android:textColor="?android:attr/textColorSecondary"
-        android:layout_marginBottom="16dp" />
+        <!-- Раздел обновления приложения -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Обновление приложения"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="?android:attr/textColorPrimary"
+            android:layout_marginBottom="8dp" />
 
-    <ProgressBar
-        android:id="@+id/update_progress"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:visibility="gone" />
+        <TextView
+            android:id="@+id/current_version_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Текущая версия: v1.0.0"
+            android:textSize="16sp"
+            android:textColor="?android:attr/textColorPrimary"
+            android:layout_marginBottom="8dp" />
 
-    <Button
-        android:id="@+id/download_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Скачать и обновить"
-        android:background="@drawable/button_3d_effect_off"
-        android:textColor="@android:color/white"
-        android:layout_marginTop="8dp"
-        android:enabled="false" />
+        <TextView
+            android:id="@+id/update_status_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Проверка обновлений..."
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:layout_marginBottom="12dp" />
 
-</LinearLayout>
+        <ProgressBar
+            android:id="@+id/update_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/download_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Скачать и обновить приложение"
+            android:background="@drawable/button_3d_effect_off"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="20dp"
+            android:enabled="false" />
+
+        <!-- Раздел обновления firmware -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Обновление firmware устройства"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="?android:attr/textColorPrimary"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/firmware_version_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Текущая версия firmware: неизвестна"
+            android:textSize="16sp"
+            android:textColor="?android:attr/textColorPrimary"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/firmware_status_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Проверка обновлений firmware..."
+            android:textSize="14sp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:layout_marginBottom="12dp" />
+
+        <ProgressBar
+            android:id="@+id/firmware_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/firmware_download_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Обновить firmware устройства"
+            android:background="@drawable/button_3d_effect_off"
+            android:textColor="@android:color/white"
+            android:layout_marginBottom="8dp"
+            android:enabled="false" />
+
+    </LinearLayout>
+</ScrollView>

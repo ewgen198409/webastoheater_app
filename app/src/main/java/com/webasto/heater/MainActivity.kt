@@ -40,6 +40,13 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
     private val currentData = mutableMapOf<String, Any>()
     private lateinit var sharedPreferences: SharedPreferences
 
+    // Внутренний класс для хранения элементов диалога
+    private data class DialogElements(
+        val firmwareProgressBar: ProgressBar?,
+        val firmwareStatusText: TextView?,
+        val firmwareDownloadButton: Button?
+    )
+
     // Переменные для сервиса
     private var webastoService: WebastoService? = null
     private var isBound = false
@@ -347,8 +354,13 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
                 line.startsWith("DEBUG:") -> {
                     Log.d("BluetoothDebug", "Device debug: $line")
                 }
-                line.startsWith("WIFI_STATUS:") -> { 
-                    currentData["WIFI_STATUS"] = line.substringAfter("WIFI_STATUS:")
+                line.startsWith("WIFI_STATUS:") -> {
+                    val wifiStatus = line.substringAfter("WIFI_STATUS:")
+                    currentData["WIFI_STATUS"] = wifiStatus
+
+                    // Парсим версию firmware из строки WIFI_STATUS
+                    parseFirmwareVersion(wifiStatus)
+
                     runOnUiThread { viewPagerAdapter.updateAllFragments(currentData.toMap()) }
                 }
                 else -> {
@@ -492,6 +504,24 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
         }
     }
 
+    private fun parseFirmwareVersion(wifiStatus: String) {
+        try {
+            // Ищем fw= в строке WIFI_STATUS
+            val fwPattern = Regex("""fw=(\S+)""")
+            val match = fwPattern.find(wifiStatus)
+
+            if (match != null) {
+                val firmwareVersion = match.groupValues[1]
+                currentData["firmware_version"] = firmwareVersion
+                Log.d("BluetoothDebug", "Parsed firmware version: $firmwareVersion")
+            } else {
+                Log.d("BluetoothDebug", "No firmware version found in WIFI_STATUS")
+            }
+        } catch (e: Exception) {
+            Log.e("BluetoothDebug", "Error parsing firmware version: ${e.message}")
+        }
+    }
+
     private fun showUpdateDialog() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_update, null)
         val dialog = AlertDialog.Builder(this)
@@ -504,18 +534,27 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
         val progressBar = dialogView.findViewById<ProgressBar>(R.id.update_progress)
         val downloadButton = dialogView.findViewById<Button>(R.id.download_button)
 
+        // Добавляем элементы для firmware
+        val firmwareVersionText = dialogView.findViewById<TextView>(R.id.firmware_version_text)
+        val firmwareStatusText = dialogView.findViewById<TextView>(R.id.firmware_status_text)
+        val firmwareProgressBar = dialogView.findViewById<ProgressBar>(R.id.firmware_progress)
+        val firmwareDownloadButton = dialogView.findViewById<Button>(R.id.firmware_download_button)
+
         // Получаем текущую версию приложения
         val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
         currentVersionText.text = "Текущая версия: v$currentVersion"
 
-        // Создаем UpdateChecker
+        // Создаем UpdateChecker для приложения
         val updateChecker = UpdateChecker(this)
 
-        // Обработчик проверки обновлений
+        // Создаем FirmwareUpdateChecker для firmware
+        val firmwareUpdateChecker = FirmwareUpdateChecker(this)
+
+        // Обработчик проверки обновлений приложения
         val updateCheckListener = object : UpdateChecker.UpdateCheckListener {
             override fun onUpdateCheckStarted() {
                 runOnUiThread {
-                    updateStatusText.text = "Проверка обновлений..."
+                    updateStatusText.text = "Проверка обновлений приложения..."
                     progressBar.visibility = View.VISIBLE
                     downloadButton.isEnabled = false
                 }
@@ -556,7 +595,7 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
                             }
                         }
                     } else {
-                        updateStatusText.text = "У вас установлена последняя версия"
+                        updateStatusText.text = "У вас установлена последняя версия приложения"
                         downloadButton.isEnabled = false
                     }
                 }
@@ -565,17 +604,152 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             override fun onUpdateCheckError(error: String) {
                 runOnUiThread {
                     progressBar.visibility = View.GONE
-                    updateStatusText.text = "Ошибка проверки обновлений: $error"
+                    updateStatusText.text = "Ошибка проверки обновлений приложения: $error"
                     downloadButton.isEnabled = false
                     Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show()
                 }
             }
         }
 
-        // Запускаем проверку обновлений
+        // Обработчик проверки обновлений firmware
+        val firmwareUpdateCheckListener = object : FirmwareUpdateChecker.FirmwareUpdateCheckListener {
+            override fun onFirmwareUpdateCheckStarted() {
+                runOnUiThread {
+                    firmwareStatusText.text = "Проверка обновлений firmware..."
+                    firmwareProgressBar.visibility = View.VISIBLE
+                    firmwareDownloadButton.isEnabled = false
+                }
+            }
+
+            override fun onFirmwareUpdateCheckCompleted(updateInfo: FirmwareUpdateChecker.FirmwareUpdateInfo) {
+                runOnUiThread {
+                    firmwareProgressBar.visibility = View.GONE
+
+                    if (updateInfo.hasUpdate) {
+                        val latestVersion = updateInfo.latestVersion ?: "Неизвестно"
+                        val formattedDate = firmwareUpdateChecker.formatReleaseDate(updateInfo.publishedAt)
+
+                        val statusMessage = buildString {
+                            append("Доступно обновление firmware v$latestVersion")
+                            if (formattedDate.isNotEmpty()) {
+                                append("\nОпубликовано: $formattedDate")
+                            }
+                            if (!updateInfo.releaseNotes.isNullOrEmpty()) {
+                                append("\n\n${updateInfo.releaseNotes}")
+                            }
+                        }
+
+                        firmwareStatusText.text = statusMessage
+                        firmwareDownloadButton.isEnabled = true
+                        firmwareDownloadButton.setOnClickListener {
+                            updateInfo.downloadUrl?.let { downloadUrl ->
+                                performOTAUpdate(downloadUrl, dialog)
+                            } ?: run {
+                                Toast.makeText(this@MainActivity,
+                                    "Ссылка на скачивание firmware недоступна",
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } else {
+                        firmwareStatusText.text = "У вас установлена последняя версия firmware"
+                        firmwareDownloadButton.isEnabled = false
+                    }
+                }
+            }
+
+            override fun onFirmwareUpdateCheckError(error: String) {
+                runOnUiThread {
+                    firmwareProgressBar.visibility = View.GONE
+                    firmwareStatusText.text = "Ошибка проверки обновлений firmware: $error"
+                    firmwareDownloadButton.isEnabled = false
+                    Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        // Проверяем наличие подключения к устройству для firmware обновления
+        if (bluetoothManager.isConnected()) {
+            // Показываем текущую версию firmware если доступна
+            currentData["firmware_version"]?.let { firmwareVersion ->
+                firmwareVersionText.text = "Текущая версия firmware: v$firmwareVersion"
+                firmwareVersionText.visibility = View.VISIBLE
+            } ?: run {
+                firmwareVersionText.text = "Текущая версия firmware: неизвестна"
+                firmwareVersionText.visibility = View.VISIBLE
+            }
+
+            // Запускаем проверку обновлений firmware
+            firmwareUpdateChecker.checkForFirmwareUpdates(firmwareUpdateCheckListener)
+        } else {
+            firmwareVersionText.text = "Текущая версия firmware: устройство не подключено"
+            firmwareVersionText.visibility = View.VISIBLE
+            firmwareStatusText.text = "Для проверки обновлений firmware подключите устройство"
+            firmwareProgressBar.visibility = View.GONE
+            firmwareDownloadButton.isEnabled = false
+        }
+
+        // Запускаем проверку обновлений приложения
         updateChecker.checkForUpdates(updateCheckListener)
 
         dialog.show()
+    }
+
+    private fun performOTAUpdate(downloadUrl: String, dialog: AlertDialog) {
+        val downloadManager = DownloadManager(this)
+
+        // Показываем прогресс обновления
+        val firmwareProgressBar = dialog.findViewById<ProgressBar>(R.id.firmware_progress)
+        val firmwareStatusText = dialog.findViewById<TextView>(R.id.firmware_status_text)
+        val firmwareDownloadButton = dialog.findViewById<Button>(R.id.firmware_download_button)
+
+        if (firmwareProgressBar != null && firmwareStatusText != null && firmwareDownloadButton != null) {
+            firmwareProgressBar.visibility = View.VISIBLE
+            firmwareStatusText.text = "Скачивание firmware файла..."
+            firmwareDownloadButton.isEnabled = false
+        }
+
+        // Шаг 1: Скачиваем firmware файл
+        downloadManager.downloadFirmware(downloadUrl) { firmwareFile, error ->
+            runOnUiThread {
+                if (firmwareFile != null) {
+                    firmwareStatusText?.text = "Передача firmware на устройство..."
+
+                    // Шаг 2: Передаем файл на устройство через Bluetooth
+                    bluetoothManager.sendOTAData(
+                        firmwareData = firmwareFile.readBytes(),
+                        onProgress = { sent: Int, total: Int ->
+                            runOnUiThread {
+                                val progress = (sent * 100) / total
+                                firmwareStatusText?.text = "Передача: $progress% ($sent/$total байт)"
+                                firmwareProgressBar?.progress = progress
+                            }
+                        },
+                        onComplete = { success: Boolean, message: String ->
+                            runOnUiThread {
+                                if (success) {
+                                    firmwareStatusText?.text = "OTA обновление завершено успешно!"
+                                    firmwareProgressBar?.progress = 100
+                                    Toast.makeText(this@MainActivity, "Firmware обновлен успешно", Toast.LENGTH_LONG).show()
+
+                                    // Закрываем диалог через 2 секунды
+                                    Handler(Looper.getMainLooper()).postDelayed({
+                                        dialog.dismiss()
+                                    }, 2000)
+                                } else {
+                                    firmwareStatusText?.text = "Ошибка обновления: $message"
+                                    firmwareDownloadButton?.isEnabled = true
+                                    Toast.makeText(this@MainActivity, "Ошибка обновления: $message", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    )
+                } else {
+                    firmwareStatusText?.text = "Ошибка скачивания firmware: $error"
+                    firmwareDownloadButton?.isEnabled = true
+                    Toast.makeText(this@MainActivity, "Ошибка скачивания: $error", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     // Метод для получения текущего менеджера из фрагментов

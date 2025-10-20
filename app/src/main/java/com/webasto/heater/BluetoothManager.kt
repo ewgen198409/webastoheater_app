@@ -118,6 +118,97 @@ class BluetoothManager(private val context: Context) {
         }
     }
 
+    fun sendBinaryData(data: ByteArray, onProgress: ((Int, Int) -> Unit)? = null): Boolean {
+        if (!isConnected) {
+            Log.e(TAG, "Not connected, cannot send binary data")
+            dataListener?.onError("Not connected to Bluetooth device")
+            return false
+        }
+
+        return try {
+            val chunkSize = 512 // Размер чанка как в ESP8266
+            var sent = 0
+            val total = data.size
+
+            Log.d(TAG, "Starting binary data transfer: $total bytes")
+
+            for (i in 0 until total step chunkSize) {
+                val end = minOf(i + chunkSize, total)
+                val chunk = data.copyOfRange(i, end)
+
+                outputStream?.write(chunk)
+                outputStream?.flush()
+
+                sent += chunk.size
+                onProgress?.invoke(sent, total)
+
+                Log.d(TAG, "Sent chunk: $sent/$total bytes")
+
+                // Увеличиваем паузу между чанками для надежности
+                Thread.sleep(20)
+            }
+
+            Log.d(TAG, "Binary data transfer completed: $sent bytes")
+
+            // Дополнительная пауза после завершения передачи
+            Thread.sleep(1000)
+
+            true
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to send binary data: ${e.message}")
+            dataListener?.onError("Bluetooth binary send failed: ${e.message}")
+            false
+        } catch (e: InterruptedException) {
+            Log.e(TAG, "Binary data transfer interrupted: ${e.message}")
+            dataListener?.onError("Bluetooth binary send interrupted")
+            false
+        }
+    }
+
+    fun sendOTAData(firmwareData: ByteArray, onProgress: (Int, Int) -> Unit, onComplete: (Boolean, String) -> Unit) {
+        Thread {
+            try {
+                // Шаг 1: Начать OTA обновление
+                Log.d(TAG, "Step 1: Sending START_OTA")
+                sendCommand("START_OTA")
+                Thread.sleep(8000) // Ждем ответа от устройства
+
+                // Шаг 2: Отправить бинарные данные firmware
+                Log.d(TAG, "Step 2: Starting binary data transfer")
+                val success = sendBinaryData(firmwareData, onProgress)
+
+                if (success) {
+                    // Ждем завершения передачи последнего чанка
+                    Log.d(TAG, "Binary transfer completed, waiting before END_OTA")
+                    Thread.sleep(20000) // Увеличено
+
+                    // Шаг 3: Отправляем команду END_OTA несколько раз для надежности
+                    Log.d(TAG, "Step 3: Sending END_OTA command (attempt 1)")
+                    sendCommand("END_OTA")
+                    Thread.sleep(2000) // Увеличено
+
+                    // Ждем подтверждения от устройства
+                    Log.d(TAG, "Waiting for device response...")
+                    Thread.sleep(12000) // Увеличено
+
+                    // Проверяем статус файловой системы
+                    Log.d(TAG, "Step 4: Checking filesystem info")
+                    sendCommand("GET_FS_INFO")
+                    Thread.sleep(5000) // Увеличено
+
+                    onComplete(true, "OTA update completed successfully")
+                } else {
+                    sendCommand("CANCEL_OTA")
+                    onComplete(false, "Failed to send firmware data")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "OTA update failed: ${e.message}")
+                sendCommand("CANCEL_OTA")
+                onComplete(false, "OTA update error: ${e.message}")
+            }
+        }.start()
+    }
+
     private fun startReading() {
         readThread = Thread {
             val buffer = ByteArray(1024)

@@ -245,6 +245,81 @@ class DownloadManager(private val context: Context) {
         }
     }
 
+    fun downloadFirmware(url: String, onComplete: (file: File?, error: String?) -> Unit) {
+        try {
+            // Создаем URI для URL
+            val uri = Uri.parse(url)
+
+            // Создаем уникальное имя файла для firmware
+            val timestamp = System.currentTimeMillis()
+            val fileName = "firmware_$timestamp.bin"
+            val destinationFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
+
+            // Создаем запрос на скачивание
+            val request = AndroidDownloadManager.Request(uri).apply {
+                setTitle("Скачивание firmware")
+                setDescription("Загрузка firmware файла для обновления устройства")
+                setNotificationVisibility(AndroidDownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                setDestinationUri(Uri.fromFile(destinationFile))
+                setAllowedOverMetered(true)
+                setAllowedOverRoaming(true)
+                setRequiresCharging(false)
+                setRequiresDeviceIdle(false)
+            }
+
+            // Запускаем скачивание
+            val downloadId = androidDownloadManager.enqueue(request)
+
+            Log.d("DownloadManager", "Started firmware download with ID: $downloadId")
+
+            // Мониторим завершение скачивания
+            val handler = Handler(Looper.getMainLooper())
+            val checkDownloadRunnable = object : Runnable {
+                override fun run() {
+                    val query = android.app.DownloadManager.Query().setFilterById(downloadId)
+                    val cursor = androidDownloadManager.query(query)
+
+                    if (cursor.moveToFirst()) {
+                        val statusIndex = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_STATUS)
+                        val status = cursor.getInt(statusIndex)
+
+                        when (status) {
+                            android.app.DownloadManager.STATUS_SUCCESSFUL -> {
+                                Log.d("DownloadManager", "Firmware download successful")
+                                onComplete(destinationFile, null)
+                            }
+                            android.app.DownloadManager.STATUS_FAILED -> {
+                                val reasonIndex = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_REASON)
+                                val reason = cursor.getInt(reasonIndex)
+                                Log.e("DownloadManager", "Firmware download failed with reason: $reason")
+                                onComplete(null, "Ошибка скачивания: код $reason")
+                            }
+                            android.app.DownloadManager.STATUS_RUNNING -> {
+                                // Продолжаем мониторинг
+                                handler.postDelayed(this, 1000)
+                            }
+                            else -> {
+                                Log.e("DownloadManager", "Firmware download status: $status")
+                                onComplete(null, "Неизвестный статус скачивания: $status")
+                            }
+                        }
+                    } else {
+                        Log.e("DownloadManager", "Could not find firmware download with ID: $downloadId")
+                        onComplete(null, "Не найден файл скачивания")
+                    }
+                    cursor.close()
+                }
+            }
+
+            // Начинаем мониторинг через 1 секунду
+            handler.postDelayed(checkDownloadRunnable, 1000)
+
+        } catch (e: Exception) {
+            Log.e("DownloadManager", "Error downloading firmware", e)
+            onComplete(null, "Ошибка при скачивании: ${e.message}")
+        }
+    }
+
     companion object {
         fun getDownloadedApkPath(context: Context, version: String): String {
             return File(
