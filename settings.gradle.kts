@@ -4,6 +4,9 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    plugins {
+        id("org.gradle.toolchains.foojay-resolver") version "0.8.0"
+    }
 }
 dependencyResolutionManagement {
     repositories {
@@ -11,5 +14,6 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
 rootProject.name = "WebastoHeater"
 include(":app")

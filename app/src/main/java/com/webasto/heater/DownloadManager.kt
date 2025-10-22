@@ -122,8 +122,10 @@ class DownloadManager(private val context: Context) {
                 setAllowedOverMetered(true)
                 setAllowedOverRoaming(true)
                 // Разрешаем установку APK из неизвестных источников для Android 8+
-                setRequiresCharging(false)
-                setRequiresDeviceIdle(false)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    setRequiresCharging(false)
+                    setRequiresDeviceIdle(false)
+                }
                 // Добавляем MIME тип для APK файлов
                 setMimeType("application/vnd.android.package-archive")
             }
@@ -136,7 +138,7 @@ class DownloadManager(private val context: Context) {
             // Регистрируем BroadcastReceiver для мониторинга завершения скачивания
             downloadReceiver = DownloadCompleteReceiver()
             val filter = IntentFilter(AndroidDownloadManager.ACTION_DOWNLOAD_COMPLETE)
-            context.registerReceiver(downloadReceiver, filter)
+            androidx.core.content.ContextCompat.registerReceiver(context, downloadReceiver, filter, androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED)
 
             // Сохраняем информацию о текущем скачивании
             currentDownloadId = downloadId
