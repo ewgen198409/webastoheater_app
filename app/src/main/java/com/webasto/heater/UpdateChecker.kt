@@ -24,7 +24,10 @@ class UpdateChecker(private val context: Context) {
         .readTimeout(10, TimeUnit.SECONDS)
         .build()
 
-    private val githubApiUrl = "https://api.github.com/repos/ewgen198409/webastoheater_app/releases"
+    // URL для проверки обновлений приложения
+    private val githubAppApiUrl = "https://api.github.com/repos/ewgen198409/webastoheater_app/releases"
+    // URL для проверки обновлений прошивки ESP
+    private val githubFirmwareApiUrl = "https://api.github.com/repos/ewgen198409/esp8266_Webasto/releases"
 
     data class UpdateInfo(
         val hasUpdate: Boolean,
@@ -41,6 +44,21 @@ class UpdateChecker(private val context: Context) {
         fun onUpdateCheckError(error: String)
     }
 
+    data class FirmwareUpdateInfo(
+        val hasUpdate: Boolean,
+        val latestVersion: String?,
+        val currentVersion: String?, // Может быть null, если не удалось получить с устройства
+        val downloadUrl: String?,
+        val releaseNotes: String?,
+        val publishedAt: String?
+    )
+
+    interface FirmwareUpdateCheckListener {
+        fun onFirmwareUpdateCheckStarted()
+        fun onFirmwareUpdateCheckCompleted(firmwareUpdateInfo: FirmwareUpdateInfo)
+        fun onFirmwareUpdateCheckError(error: String)
+    }
+
     fun checkForUpdates(listener: UpdateCheckListener) {
         val currentVersion = getCurrentVersion()
 
@@ -48,22 +66,22 @@ class UpdateChecker(private val context: Context) {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val updateInfo = performUpdateCheck(currentVersion)
+                val updateInfo = performAppUpdateCheck(currentVersion)
                 Handler(Looper.getMainLooper()).post {
                     listener.onUpdateCheckCompleted(updateInfo)
                 }
             } catch (e: Exception) {
-                Log.e("UpdateChecker", "Error checking for updates", e)
+                Log.e("UpdateChecker", "Error checking for app updates", e)
                 Handler(Looper.getMainLooper()).post {
-                    listener.onUpdateCheckError("Ошибка проверки обновлений: ${e.message}")
+                    listener.onUpdateCheckError("Ошибка проверки обновлений приложения: ${e.message}")
                 }
             }
         }
     }
 
-    private fun performUpdateCheck(currentVersion: String): UpdateInfo {
+    private fun performAppUpdateCheck(currentVersion: String): UpdateInfo {
         val request = Request.Builder()
-            .url(githubApiUrl)
+            .url(githubAppApiUrl)
             .addHeader("User-Agent", "WebastoHeater-App")
             .build()
 
@@ -107,12 +125,79 @@ class UpdateChecker(private val context: Context) {
         )
     }
 
+    fun checkForFirmwareUpdates(currentFirmwareVersion: String?, listener: FirmwareUpdateCheckListener) {
+        listener.onFirmwareUpdateCheckStarted()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val firmwareUpdateInfo = performFirmwareUpdateCheck(currentFirmwareVersion)
+                Handler(Looper.getMainLooper()).post {
+                    listener.onFirmwareUpdateCheckCompleted(firmwareUpdateInfo)
+                }
+            } catch (e: Exception) {
+                Log.e("UpdateChecker", "Error checking for firmware updates", e)
+                Handler(Looper.getMainLooper()).post {
+                    listener.onFirmwareUpdateCheckError("Ошибка проверки обновлений прошивки: ${e.message}")
+                }
+            }
+        }
+    }
+
+    private fun performFirmwareUpdateCheck(currentFirmwareVersion: String?): FirmwareUpdateInfo {
+        val request = Request.Builder()
+            .url(githubFirmwareApiUrl)
+            .addHeader("User-Agent", "WebastoHeater-App")
+            .build()
+
+        val response = client.newCall(request).execute()
+        if (!response.isSuccessful) {
+            throw IOException("HTTP ${response.code}")
+        }
+
+        val responseBody = response.body?.string()
+            ?: throw IOException("Empty response")
+
+        val releases = JSONArray(responseBody as String)
+
+        if (releases.length() == 0) {
+            return FirmwareUpdateInfo(
+                hasUpdate = false,
+                latestVersion = null,
+                currentVersion = currentFirmwareVersion,
+                downloadUrl = null,
+                releaseNotes = null,
+                publishedAt = null
+            )
+        }
+
+        val latestRelease = releases.getJSONObject(0)
+        val latestVersion = extractVersionFromTag(latestRelease.getString("tag_name"))
+        val hasUpdate = if (currentFirmwareVersion != null) {
+            isNewerVersion(latestVersion, currentFirmwareVersion)
+        } else {
+            true // Если текущая версия неизвестна, считаем, что есть обновление
+        }
+
+        val downloadUrl = findBinDownloadUrl(latestRelease)
+        val releaseNotes = latestRelease.optString("body", "")
+        val publishedAt = latestRelease.optString("published_at", "")
+
+        return FirmwareUpdateInfo(
+            hasUpdate = hasUpdate,
+            latestVersion = latestVersion,
+            currentVersion = currentFirmwareVersion,
+            downloadUrl = downloadUrl,
+            releaseNotes = releaseNotes,
+            publishedAt = publishedAt
+        )
+    }
+
     private fun getCurrentVersion(): String {
         return try {
             val packageInfo: PackageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
             packageInfo.versionName ?: "1.0.0"
         } catch (e: Exception) {
-            Log.e("UpdateChecker", "Error getting current version", e)
+            Log.e("UpdateChecker", "Error getting current app version", e)
             "1.0.0"
         }
     }
@@ -122,7 +207,7 @@ class UpdateChecker(private val context: Context) {
         return tagName.removePrefix("v").removePrefix("V")
     }
 
-    private fun isNewerVersion(latestVersion: String, currentVersion: String): Boolean {
+    fun isNewerVersion(latestVersion: String, currentVersion: String): Boolean {
         return try {
             val latestParts = latestVersion.split(".").map { it.toInt() }
             val currentParts = currentVersion.split(".").map { it.toInt() }
@@ -139,7 +224,7 @@ class UpdateChecker(private val context: Context) {
             }
             false
         } catch (e: Exception) {
-            Log.e("UpdateChecker", "Error comparing versions", e)
+            Log.e("UpdateChecker", "Error comparing versions: $latestVersion vs $currentVersion", e)
             false
         }
     }
@@ -153,6 +238,21 @@ class UpdateChecker(private val context: Context) {
 
             // Ищем APK файл
             if (assetName.endsWith(".apk", ignoreCase = true)) {
+                return downloadUrl
+            }
+        }
+        return null
+    }
+
+    private fun findBinDownloadUrl(release: JSONObject): String? {
+        val assets = release.getJSONArray("assets")
+        for (i in 0 until assets.length()) {
+            val asset = assets.getJSONObject(i)
+            val assetName = asset.getString("name")
+            val downloadUrl = asset.getString("browser_download_url")
+
+            // Ищем .bin файл
+            if (assetName.endsWith(".bin", ignoreCase = true)) {
                 return downloadUrl
             }
         }

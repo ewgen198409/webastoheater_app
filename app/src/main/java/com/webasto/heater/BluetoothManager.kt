@@ -30,6 +30,7 @@ class BluetoothManager(private val context: Context) {
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
     private var dataListener: BluetoothDataListener? = null
+    private var otaDataListener: BluetoothDataListener? = null // Новый слушатель для OTA
     private var readThread: Thread? = null
     private var isConnected = false
 
@@ -118,6 +119,24 @@ class BluetoothManager(private val context: Context) {
         }
     }
 
+    fun sendBytes(data: ByteArray) {
+        if (!isConnected) {
+            Log.e(TAG, "Not connected, cannot send bytes")
+            dataListener?.onError("Not connected to Bluetooth device")
+            return
+        }
+
+        try {
+            outputStream?.write(data)
+            outputStream?.flush()
+            // Log.d(TAG, "Bluetooth bytes sent: ${data.size} bytes") // Отключаем для уменьшения логов во время OTA
+        } catch (e: IOException) {
+            Log.e(TAG, "Failed to send Bluetooth bytes: ${e.message}")
+            dataListener?.onError("Bluetooth send failed: ${e.message}")
+            disconnect()
+        }
+    }
+
     private fun startReading() {
         readThread = Thread {
             val buffer = ByteArray(1024)
@@ -139,7 +158,11 @@ class BluetoothManager(private val context: Context) {
                             val trimmedLine = line.trim()
                             if (trimmedLine.isNotEmpty()) {
                                 Log.d(TAG, "Bluetooth line received: $trimmedLine")
-                                dataListener?.onMessageReceived(trimmedLine)
+                                if (otaDataListener != null) {
+                                    otaDataListener?.onMessageReceived(trimmedLine)
+                                } else {
+                                    dataListener?.onMessageReceived(trimmedLine)
+                                }
                             }
                         }
                     }
@@ -162,6 +185,14 @@ class BluetoothManager(private val context: Context) {
         this.dataListener = listener
     }
 
+    fun setOtaDataListener(listener: BluetoothDataListener?) {
+        this.otaDataListener = listener
+    }
+
+    fun getDataListener(): BluetoothDataListener? {
+        return this.dataListener
+    }
+
     fun isConnected(): Boolean {
         return isConnected && bluetoothSocket?.isConnected == true
     }
@@ -171,6 +202,8 @@ class BluetoothManager(private val context: Context) {
             Thread.sleep(1000)
             sendCommand("GET_SETTINGS")
             Log.d(TAG, "Sent initial GET_SETTINGS command")
+            sendCommand("GET_FIRMWARE_VERSION")
+            Log.d(TAG, "Sent initial GET_FIRMWARE_VERSION command")
         }.start()
     }
 

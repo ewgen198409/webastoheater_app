@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
+    android:padding="5dp"
     android:background="?android:attr/colorBackground">
 
     <LinearLayout
@@ -24,7 +24,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="5dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -33,14 +33,14 @@
                     android:textStyle="bold"
                     android:textSize="16sp"
                     android:textColor="?android:attr/textColorPrimary"
-                    android:paddingBottom="8dp" />
+                    android:paddingBottom="2dp" />
 
                 <!-- Переключатель темы -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:padding="8dp"
+                    android:padding="5dp"
                     android:gravity="center_vertical">
 
                     <TextView
@@ -74,7 +74,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="6dp">
 
                 <TextView
                     android:id="@+id/settings_status"
@@ -100,7 +100,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="5dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -109,14 +109,14 @@
                     android:textStyle="bold"
                     android:textSize="16sp"
                     android:textColor="?android:attr/textColorPrimary"
-                    android:paddingBottom="8dp" />
+                    android:paddingBottom="2dp" />
 
                 <!-- Размер насоса -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="8dp">
+                    android:padding="6dp">
 
                     <TextView
                         android:layout_width="match_parent"
@@ -156,7 +156,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="5dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -166,35 +166,6 @@
                     android:textSize="16sp"
                     android:textColor="?android:attr/textColorPrimary"
                     android:paddingBottom="8dp" />
-
-                <!-- Целевая температура -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="8dp">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Целевая температура нагревателя (150-250°C)"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                    <SeekBar
-                        android:id="@+id/target_temp_seekbar"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:max="100" />
-
-                    <TextView
-                        android:id="@+id/target_temp_value"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="150°C"
-                        android:textStyle="bold"
-                        android:textColor="?android:attr/textColorPrimary" />
-
-                </LinearLayout>
 
                 <!-- Минимальная температура -->
                 <LinearLayout
@@ -225,7 +196,7 @@
 
                 </LinearLayout>
 
-                <!-- Температура перегрева -->
+                <!-- Целевая температура -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -235,24 +206,27 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Температура перегрева (200-300°C)"
+                        android:text="Целевая температура нагревателя (150-250°C)"
                         android:textColor="?android:attr/textColorPrimary" />
 
                     <SeekBar
-                        android:id="@+id/overheat_temp_seekbar"
+                        android:id="@+id/target_temp_seekbar"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:max="100" />
 
                     <TextView
-                        android:id="@+id/overheat_temp_value"
+                        android:id="@+id/target_temp_value"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="200°C"
+                        android:text="150°C"
                         android:textStyle="bold"
                         android:textColor="?android:attr/textColorPrimary" />
 
                 </LinearLayout>
+
+
+
 
                 <!-- Температура предупреждения -->
                 <LinearLayout
@@ -283,6 +257,36 @@
 
                 </LinearLayout>
 
+
+                <!-- Температура перегрева -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="8dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Температура перегрева (200-300°C)"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                    <SeekBar
+                        android:id="@+id/overheat_temp_seekbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:max="100" />
+
+                    <TextView
+                        android:id="@+id/overheat_temp_value"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="200°C"
+                        android:textStyle="bold"
+                        android:textColor="?android:attr/textColorPrimary" />
+
+                </LinearLayout>
+
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
@@ -299,7 +303,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="5dp">
 
                 <TextView
                     android:layout_width="match_parent"
@@ -355,7 +359,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="5dp">
 
                 <TextView
                     android:layout_width="match_parent"

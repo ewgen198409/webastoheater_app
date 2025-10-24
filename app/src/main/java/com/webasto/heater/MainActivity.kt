@@ -31,6 +31,12 @@ import android.widget.TextView
 import android.widget.ImageView
 import android.view.LayoutInflater
 import android.widget.ProgressBar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import android.net.Uri
+import androidx.activity.result.contract.ActivityResultContracts
 
 class MainActivity : AppCompatActivity(), BluetoothDataListener {
 
@@ -48,6 +54,12 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
     private var isScanningWifi = false
     private val wifiScanBuffer = mutableListOf<String>()
 
+    // Новые поля для обновления прошивки
+    private lateinit var firmwareDownloader: FirmwareDownloader
+    private lateinit var firmwareUpdater: FirmwareUpdater
+    private var originalBluetoothDataListener: BluetoothDataListener? = null // Для сохранения оригинального слушателя
+    private var currentUpdateDialog: AlertDialog? = null // Для доступа к диалогу из ActivityResultLauncher
+
     // Соединение с сервисом
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(className: ComponentName, service: IBinder) {
@@ -61,6 +73,16 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             isBound = false
             webastoService = null
             Log.d("Service", "WebastoService disconnected")
+        }
+    }
+
+    private fun applyThemeOnCreate() {
+        // Применяем тему только при первом создании
+        val isDarkTheme = sharedPreferences.getBoolean("dark_theme", false)
+        if (isDarkTheme) {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        } else {
+            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         }
     }
 
@@ -83,16 +105,17 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
         initializeUI()
         setupTabs()
         initializeBluetooth()
+        initializeFirmwareComponents() // Инициализация компонентов прошивки
     }
 
-    private fun applyThemeOnCreate() {
-        // Применяем тему только при первом создании
-        val isDarkTheme = sharedPreferences.getBoolean("dark_theme", false)
-        if (isDarkTheme) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        } else {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-        }
+    // Метод для получения текущего менеджера из фрагментов
+    fun getCurrentManager(): BluetoothManager? {
+        return bluetoothManager
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        Log.d("MainActivity", "onSaveInstanceState called")
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -106,6 +129,13 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
         if (!bluetoothManager.initialize()) {
             Toast.makeText(this, "Bluetooth не поддерживается", Toast.LENGTH_SHORT).show()
         }
+        originalBluetoothDataListener = this // Сохраняем оригинальный слушатель
+        bluetoothManager.setDataListener(this) // Устанавливаем основной слушатель
+    }
+
+    private fun initializeFirmwareComponents() {
+        firmwareDownloader = FirmwareDownloader(this)
+        firmwareUpdater = FirmwareUpdater(this, bluetoothManager, firmwareDownloader)
     }
 
     private fun initializeUI() {
@@ -127,6 +157,16 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
         val logoImageView = findViewById<ImageView>(R.id.webasto_logo)
         logoImageView.setOnClickListener {
             showUpdateDialog()
+        }
+    }
+
+    // ActivityResultLauncher для выбора файла прошивки
+    private val selectFirmwareFileLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri: Uri? ->
+        uri?.let {
+            // Запускаем процесс обновления с локальным файлом
+            startFirmwareUpdateProcess(it, currentData["firmware_version"] as? String, currentUpdateDialog)
+        } ?: run {
+            Toast.makeText(this, "Файл прошивки не выбран", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -206,6 +246,7 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             bluetoothManager.disconnect()
         }
 
+        // Важно: здесь мы устанавливаем основной слушатель MainActivity
         bluetoothManager.setDataListener(this)
 
         // Запускаем в отдельном потоке, чтобы не блокировать UI
@@ -341,14 +382,28 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
                         Toast.makeText(this, "Ошибка сохранения настроек", Toast.LENGTH_SHORT).show()
                     }
                 }
+                line.startsWith("FIRMWARE_VERSION:") -> {
+                    val firmwareVersion = line.substringAfter("FIRMWARE_VERSION:").trim()
+                    currentData["firmware_version"] = firmwareVersion
+                    Log.d("BluetoothDebug", "Firmware version received: $firmwareVersion")
+                    // Обновляем UI, если диалог обновления открыт
+                    runOnUiThread { viewPagerAdapter.updateAllFragments(currentData.toMap()) }
+                }
                 line.contains("может быть изменена только через WebSocket") -> {
                     Log.d("BluetoothDebug", "Device WebSocket warning (ignored)")
                 }
                 line.startsWith("DEBUG:") -> {
                     Log.d("BluetoothDebug", "Device debug: $line")
                 }
-                line.startsWith("WIFI_STATUS:") -> { 
+                line.startsWith("WIFI_STATUS:") -> {
                     currentData["WIFI_STATUS"] = line.substringAfter("WIFI_STATUS:")
+                    // Парсим версию прошивки из WIFI_STATUS (fw=...)
+                    val wifiData = line.substringAfter("WIFI_STATUS:")
+                    val fwRegex = Regex("fw=([0-9]+(?:\\.[0-9]+)*)")
+                    fwRegex.find(wifiData)?.groups?.get(1)?.value?.let { firmwareVersion ->
+                        currentData["firmware_version"] = firmwareVersion
+                        Log.d("BluetoothDebug", "Firmware version parsed from WIFI_STATUS: $firmwareVersion")
+                    }
                     runOnUiThread { viewPagerAdapter.updateAllFragments(currentData.toMap()) }
                 }
                 else -> {
@@ -499,31 +554,46 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
             .setCancelable(true)
             .create()
 
-        val currentVersionText = dialogView.findViewById<TextView>(R.id.current_version_text)
-        val updateStatusText = dialogView.findViewById<TextView>(R.id.update_status_text)
-        val progressBar = dialogView.findViewById<ProgressBar>(R.id.update_progress)
-        val downloadButton = dialogView.findViewById<Button>(R.id.download_button)
+        // Элементы UI для обновления приложения
+        val currentAppVersionText = dialogView.findViewById<TextView>(R.id.current_version_text)
+        val appUpdateStatusText = dialogView.findViewById<TextView>(R.id.update_status_text)
+        val appProgressBar = dialogView.findViewById<ProgressBar>(R.id.update_progress)
+        val appDownloadButton = dialogView.findViewById<Button>(R.id.download_button)
+
+        // Элементы UI для обновления прошивки
+        val currentFirmwareVersionText = dialogView.findViewById<TextView>(R.id.current_firmware_version_text)
+        val firmwareUpdateStatusText = dialogView.findViewById<TextView>(R.id.firmware_update_status_text)
+        val firmwareProgressBar = dialogView.findViewById<ProgressBar>(R.id.firmware_update_progress)
+        val firmwareProgressText = dialogView.findViewById<TextView>(R.id.firmware_update_progress_text)
+        val downloadFirmwareButton = dialogView.findViewById<Button>(R.id.download_firmware_button)
+        val selectLocalFirmwareButton = dialogView.findViewById<Button>(R.id.select_local_firmware_button)
+
+        // Сохраняем ссылку на диалог
+        currentUpdateDialog = dialog
 
         // Получаем текущую версию приложения
-        val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
-        currentVersionText.text = "Текущая версия: v$currentVersion"
+        val currentAppVersion = packageManager.getPackageInfo(packageName, 0).versionName
+        currentAppVersionText.text = "Текущая версия: v$currentAppVersion"
 
-        // Создаем UpdateChecker
+        // Получаем текущую версию прошивки (если доступна)
+        val currentFirmwareVersion = currentData["firmware_version"] as? String
+        currentFirmwareVersionText.text = "Текущая прошивка: ${currentFirmwareVersion ?: "N/A"}"
+
         val updateChecker = UpdateChecker(this)
 
-        // Обработчик проверки обновлений
-        val updateCheckListener = object : UpdateChecker.UpdateCheckListener {
+        // --- Логика для обновления приложения ---
+        val appUpdateCheckListener = object : UpdateChecker.UpdateCheckListener {
             override fun onUpdateCheckStarted() {
                 runOnUiThread {
-                    updateStatusText.text = "Проверка обновлений..."
-                    progressBar.visibility = View.VISIBLE
-                    downloadButton.isEnabled = false
+                    appUpdateStatusText.text = "Проверка обновлений приложения..."
+                    appProgressBar.visibility = View.VISIBLE
+                    appDownloadButton.isEnabled = false
                 }
             }
 
             override fun onUpdateCheckCompleted(updateInfo: UpdateChecker.UpdateInfo) {
                 runOnUiThread {
-                    progressBar.visibility = View.GONE
+                    appProgressBar.visibility = View.GONE
 
                     if (updateInfo.hasUpdate) {
                         val latestVersion = updateInfo.latestVersion ?: "Неизвестно"
@@ -539,9 +609,9 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
                             }
                         }
 
-                        updateStatusText.text = statusMessage
-                        downloadButton.isEnabled = true
-                        downloadButton.setOnClickListener {
+                        appUpdateStatusText.text = statusMessage
+                        appDownloadButton.isEnabled = true
+                        appDownloadButton.setOnClickListener {
                             updateInfo.downloadUrl?.let { downloadUrl ->
                                 val downloadManager = DownloadManager(this@MainActivity)
                                 downloadManager.downloadApk(downloadUrl, latestVersion) { success, _ ->
@@ -551,57 +621,181 @@ class MainActivity : AppCompatActivity(), BluetoothDataListener {
                                 }
                             } ?: run {
                                 Toast.makeText(this@MainActivity,
-                                    "Ссылка на скачивание недоступна",
+                                    "Ссылка на скачивание приложения недоступна",
                                     Toast.LENGTH_SHORT).show()
                             }
                         }
                     } else {
-                        updateStatusText.text = "У вас установлена последняя версия"
-                        downloadButton.isEnabled = false
+                        appUpdateStatusText.text = "У вас установлена последняя версия приложения"
+                        appDownloadButton.isEnabled = false
                     }
                 }
             }
 
             override fun onUpdateCheckError(error: String) {
                 runOnUiThread {
-                    progressBar.visibility = View.GONE
-                    updateStatusText.text = "Ошибка проверки обновлений: $error"
-                    downloadButton.isEnabled = false
+                    appProgressBar.visibility = View.GONE
+                    appUpdateStatusText.text = "Ошибка проверки обновлений приложения: $error"
+                    appDownloadButton.isEnabled = false
                     Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show()
                 }
             }
         }
 
-        // Запускаем проверку обновлений
-        updateChecker.checkForUpdates(updateCheckListener)
+        // Запускаем проверку обновлений приложения
+        updateChecker.checkForUpdates(appUpdateCheckListener)
+
+        // --- Логика для обновления прошивки ---
+        val firmwareUpdateCheckListener = object : UpdateChecker.FirmwareUpdateCheckListener {
+            override fun onFirmwareUpdateCheckStarted() {
+                runOnUiThread {
+                    firmwareUpdateStatusText.text = "Проверка обновлений прошивки..."
+                    firmwareProgressBar.visibility = View.VISIBLE
+                    firmwareProgressText.visibility = View.VISIBLE
+                    downloadFirmwareButton.isEnabled = false
+                }
+            }
+
+            override fun onFirmwareUpdateCheckCompleted(firmwareUpdateInfo: UpdateChecker.FirmwareUpdateInfo) {
+                runOnUiThread {
+                    firmwareProgressBar.visibility = View.GONE
+                    firmwareProgressText.visibility = View.GONE
+
+                    if (firmwareUpdateInfo.hasUpdate) {
+                        val latestVersion = firmwareUpdateInfo.latestVersion ?: "Неизвестно"
+                        val formattedDate = updateChecker.formatReleaseDate(firmwareUpdateInfo.publishedAt)
+
+                        val statusMessage = buildString {
+                            append("Доступно обновление прошивки v$latestVersion")
+                            if (formattedDate.isNotEmpty()) {
+                                append("\nОпубликовано: $formattedDate")
+                            }
+                            if (!firmwareUpdateInfo.releaseNotes.isNullOrEmpty()) {
+                                append("\n\n${firmwareUpdateInfo.releaseNotes}")
+                            }
+                        }
+
+                        firmwareUpdateStatusText.text = statusMessage
+                        downloadFirmwareButton.isEnabled = true
+                        downloadFirmwareButton.setOnClickListener {
+                            firmwareUpdateInfo.downloadUrl?.let { downloadUrl ->
+                                startFirmwareUpdateProcess(downloadUrl, currentFirmwareVersion, dialog)
+                            } ?: run {
+                                Toast.makeText(this@MainActivity,
+                                    "Ссылка на скачивание прошивки недоступна",
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } else {
+                        firmwareUpdateStatusText.text = "У вас установлена последняя версия прошивки"
+                        downloadFirmwareButton.isEnabled = false
+                    }
+                }
+            }
+
+            override fun onFirmwareUpdateCheckError(error: String) {
+                runOnUiThread {
+                    firmwareProgressBar.visibility = View.GONE
+                    firmwareProgressText.visibility = View.GONE
+                    firmwareUpdateStatusText.text = "Ошибка проверки обновлений прошивки: $error"
+                    downloadFirmwareButton.isEnabled = false
+                    Toast.makeText(this@MainActivity, error, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+
+        // Обработчик для кнопки "Выбрать локальный файл прошивки"
+        selectLocalFirmwareButton.setOnClickListener {
+            selectFirmwareFileLauncher.launch("*/*") // Открываем диалог выбора файла
+        }
+
+        // Запускаем проверку прошивки при открытии диалога
+        updateChecker.checkForFirmwareUpdates(currentFirmwareVersion, firmwareUpdateCheckListener)
 
         dialog.show()
     }
 
-    // Метод для получения текущего менеджера из фрагментов
-    fun getCurrentManager(): Any? {
-        return bluetoothManager
-    }
+    private fun startFirmwareUpdateProcess(firmwareSource: Any, currentFirmwareVersion: String?, dialog: AlertDialog?) {
+        // Сохраняем текущий слушатель BluetoothManager
+        originalBluetoothDataListener = bluetoothManager.getDataListener()
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        Log.d("MainActivity", "onSaveInstanceState called")
-    }
+        // Устанавливаем слушатель FirmwareUpdater
+        firmwareUpdater.setUpdateListener(object : FirmwareUpdater.FirmwareUpdateListener {
+            override fun onUpdateStarted() {
+                runOnUiThread {
+                    dialog?.findViewById<TextView>(R.id.firmware_update_status_text)?.text = "Начало обновления прошивки..."
+                    dialog?.findViewById<ProgressBar>(R.id.firmware_update_progress)?.apply {
+                        visibility = View.VISIBLE
+                        progress = 0
+                    }
+                    dialog?.findViewById<TextView>(R.id.firmware_update_progress_text)?.apply {
+                        visibility = View.VISIBLE
+                        text = "0%"
+                    }
+                    dialog?.findViewById<Button>(R.id.download_firmware_button)?.isEnabled = false
+                    dialog?.findViewById<Button>(R.id.select_local_firmware_button)?.isEnabled = false // Отключаем кнопку выбора локального файла
+                    dialog?.setCancelable(false) // Запрещаем закрытие диалога во время обновления
+                }
+            }
 
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-        Log.d("MainActivity", "onRestoreInstanceState called")
-    }
+            override fun onDownloadProgress(progress: Int) {
+                runOnUiThread {
+                    dialog?.findViewById<ProgressBar>(R.id.firmware_update_progress)?.progress = progress
+                    dialog?.findViewById<TextView>(R.id.firmware_update_progress_text)?.text = "Загрузка: $progress%"
+                }
+            }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        Log.d("MainActivity", "Activity destroyed - isChangingConfigurations: $isChangingConfigurations")
+            override fun funOnUploadProgress(progress: Int) {
+                runOnUiThread {
+                    // Этот метод может быть использован для более детального прогресса загрузки на устройство
+                    // Например, можно обновить текст или использовать другой прогресс-бар
+                }
+            }
 
-        if (!isChangingConfigurations) {
-            // Реальное закрытие приложения
-            stopWebastoService()
-            bluetoothManager.disconnect()
-            Log.d("MainActivity", "Real destroy - services stopped")
+            override fun onUpdateProgress(message: String, progress: Int) {
+                runOnUiThread {
+                    dialog?.findViewById<TextView>(R.id.firmware_update_status_text)?.text = message
+                    dialog?.findViewById<ProgressBar>(R.id.firmware_update_progress)?.progress = progress
+                    dialog?.findViewById<TextView>(R.id.firmware_update_progress_text)?.text = "$progress%"
+                }
+            }
+
+            override fun onUpdateCompleted() {
+                runOnUiThread {
+                    dialog?.findViewById<TextView>(R.id.firmware_update_status_text)?.text = "Обновление прошивки завершено!"
+                    dialog?.findViewById<ProgressBar>(R.id.firmware_update_progress)?.progress = 100
+                    dialog?.findViewById<TextView>(R.id.firmware_update_progress_text)?.text = "100%"
+                    Toast.makeText(this@MainActivity, "Прошивка успешно обновлена!", Toast.LENGTH_LONG).show()
+                    dialog?.setCancelable(true)
+                    dialog?.dismiss() // Закрываем диалог после успешного обновления
+                    // Восстанавливаем оригинальный слушатель BluetoothManager
+                    originalBluetoothDataListener?.let { bluetoothManager.setDataListener(it) }
+                }
+            }
+
+            override fun onUpdateError(error: String) {
+                runOnUiThread {
+                    dialog?.findViewById<TextView>(R.id.firmware_update_status_text)?.text = "Ошибка: $error"
+                    dialog?.findViewById<ProgressBar>(R.id.firmware_update_progress)?.progress = 0
+                    dialog?.findViewById<TextView>(R.id.firmware_update_progress_text)?.text = "Ошибка"
+                    Toast.makeText(this@MainActivity, "Ошибка обновления прошивки: $error", Toast.LENGTH_LONG).show()
+                    dialog?.setCancelable(true)
+                    dialog?.findViewById<Button>(R.id.download_firmware_button)?.isEnabled = true
+                    dialog?.findViewById<Button>(R.id.select_local_firmware_button)?.isEnabled = true // Включаем кнопку выбора локального файла
+                    // Восстанавливаем оригинальный слушатель BluetoothManager
+                    originalBluetoothDataListener?.let { bluetoothManager.setDataListener(it) }
+                }
+            }
+        })
+
+        // Запускаем обновление прошивки в корутине
+        CoroutineScope(Dispatchers.Main).launch {
+            when (firmwareSource) {
+                is String -> firmwareUpdater.startFirmwareUpdate(firmwareSource, currentFirmwareVersion, null)
+                is Uri -> firmwareUpdater.startFirmwareUpdate(null, currentFirmwareVersion, firmwareSource)
+                else -> Toast.makeText(this@MainActivity, "Неизвестный источник прошивки", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }
