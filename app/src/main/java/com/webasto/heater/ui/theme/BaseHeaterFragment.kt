@@ -12,9 +12,7 @@ abstract class BaseHeaterFragment : Fragment() {
         super.onResume()
         val activity = requireActivity() as? MainActivity
         activity?.getCurrentManager()?.let { manager ->
-            if (manager is BluetoothManager) {
-                bluetoothManager = manager
-            }
+            bluetoothManager = manager
         }
     }
 
