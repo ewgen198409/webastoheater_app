@@ -12,7 +12,7 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -40,11 +40,35 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
+
     buildFeatures {
         viewBinding = true
+    }
+
+}
+
+tasks.register("renameApk") {
+    doLast {
+        val apkDir = File(project.buildDir, "outputs/apk/release")
+        apkDir.listFiles { file ->
+            file.isFile && file.name.endsWith(".apk")
+        }?.forEach { apkFile ->
+            val newName = "WebastoHeater-${android.defaultConfig.versionName}.apk"
+            val newFile = File(apkDir, newName)
+            apkFile.renameTo(newFile)
+        }
+    }
+}
+
+afterEvaluate {
+    tasks.named("assembleRelease") {
+        finalizedBy("renameApk")
+    }
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
     }
 }
 
