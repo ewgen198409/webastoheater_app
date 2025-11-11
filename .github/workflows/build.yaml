@@ -31,10 +31,6 @@ jobs:
           sed -i 's/versionName = ".*"/versionName = "'"$VERSION"'"/' app/build.gradle.kts
           echo "Updated versionName to $VERSION"
 
-      - name: Decode keystore
-        run: |
-          base64 -d release.keystore.base64 > app/my-release-key.keystore
-
       - name: Build release APK
         run: ./gradlew assembleRelease
 
